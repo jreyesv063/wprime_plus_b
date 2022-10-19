@@ -17,6 +17,9 @@ def main(args):
     executor_args = {
         "schema": processor.NanoAODSchema,
     }
+    
+    if args.executor == "futures":
+        executor_args.update({"workers": 10})
 
     if args.executor == "dask":
         client = Client(
@@ -37,7 +40,14 @@ def main(args):
                 fileset[key] = ["root://xcache/" + file for file in val]
             else:
                 fileset[key] = ["root://xcache/" + file for file in val[: args.nfiles]]
+                
     # run processor
+    if args.executor == "iterative":
+        executor = processor.iterative_executor
+    if args.executor == "dask":
+        executor = processor.dask_executor
+    if args.executor == "futures":
+        executor = processor.futures_executor
     out = processor.run_uproot_job(
         fileset,
         treename="Events",
@@ -47,11 +57,7 @@ def main(args):
             output_location=args.output_location,
             dir_name=args.dir_name,
         ),
-        executor=(
-            processor.iterative_executor
-            if args.executor == "iterative"
-            else processor.dask_executor
-        ),
+        executor=executor,
         executor_args=executor_args,
     )
 
