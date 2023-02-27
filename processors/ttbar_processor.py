@@ -261,7 +261,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         good_muons = (
             (events.Muon.pt >= 30)
             & (np.abs(events.Muon.eta) < 2.4)
-            & (events.Muon.tightId if self._channel == "ele" else events.Muon.tightId)
+            & (events.Muon.tightId)
             & (
                 events.Muon.pfRelIso04_all < 0.25
                 if hasattr(events.Muon, "pfRelIso04_all")
