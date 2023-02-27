@@ -34,43 +34,34 @@ The processor applies the following pre-selection cuts
 | $$\textbf{Object}$$    | $$\textbf{Variable}$$          | $$\textbf{Cut}$$                                                    | 
 | ---------------------  | ------------------------------ | ------------------------------------------------------------------- |
 | $$\textbf{Electrons}$$ |                                |                                                                     |
-|                        | $$p_T$$                        | $$\geq 30 \; \text{GeV}$$                                           |
-|                        | $$\eta$$                       | $$ |\eta| \lt 1.44 \; \text{and} \; 1.57 \lt |\eta| \lt 2.5$$       |
-|                        | $$\text{pfRelIso04_all}$$      | $$\lt 0.25$$                                                        |
-|                        | $$\text{mvaFall17V2Iso_WP80}$$ if electron channel, else $$\text{mvaFall17V2Iso_WP90}$$ | $$\text{True}$$|
+|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $\eta$                       | $\| \eta \| < 1.44$ and $1.57 < \| \eta \| < 2.5$       |
+|                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
+|                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
-|                        | $$p_T$$                        | $$\geq 30 \; \text{GeV}$$                                           |
-|                        | $$\eta$$                       | $$\lt 2.4$$                                                 |
-|                        | $$\text{pfRelIso04_all}$$      | $$\lt 0.25$$                                                        |
-|                        | $$\text{mediumId}$$ if electron channel, else $$\text{tightId}$$ | $$\text{True}$$                   |
+|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $\eta$                       | $\lt 2.4$                                                 |
+|                        | pfRelIso04_all       | $\lt 0.25$                                                        |
+|                        | mediumId (ele) tightId (mu) | $\text{True}$                   |
 | $$\textbf{Jets}$$      |                                |                                                                     |
-|                        | $$p_T$$                        | $$\geq 20 \; \text{GeV}$$                                           |
-|                        | $$\eta$$                       | $$ |\eta| \lt 2.4$$                                                 |
-|                        | $$\text{JetId}$$               | $$6$$                                                               |
-|                        | $$\text{puId}$$                | $$7$$                                                               |
-|                        | $$\text{btagDeepFlavB}$$       | $$\gt \textbf{Medium}$$                                             |
+|                        | $p_T$                        |  $\geq 20 \\; \text{GeV} $                                            |
+|                        | $\eta$                       | $\lt 2.4$                                                 |
+|                        | JetId                        | $6$                                                               |
+|                        | puId                          | $7$                                                               |
+|                        | btagDeepFlavB                | $\gt$ Medium WP                                          |
 
 
 
 The trigger efficiency is computed as:
 
 
-
-
-
-$$\epsilon = \frac{\text{selection cuts & reference trigger & main trigger}}{\text{selection cuts & reference trigger}}$$
-
-
-
+$$\epsilon = \frac{\text{selection cuts and reference trigger and main trigger}}{\text{selection cuts and reference trigger}}$$
 
 
 so we define two regions for each channel: ```numerator``` and ```denominator```. We use the following triggers:
 
 
-
-
-$$\text{Analysis triggers}$$
-
+$\text{Analysis triggers}$
 
 
 | Channel        | 2016           |    | 2017           |   | 2018           |
@@ -79,16 +70,10 @@ $$\text{Analysis triggers}$$
 | Electron       | Ele27\_WPTight\_Gsf |   | Ele35\_WPTight\_Gsf |   | Ele32\_WPTight\_Gsf |
 
 
-
 The reference and main triggers, alongside the selection criteria applied to establish each region, are presented in the following tables:
 
 
-
-
 #### Electron channel
-
-
-
 
 | Trigger        | 2016           |   | 2017           |   | 2018           |
 |----------------|----------------|---|----------------|---|----------------|
@@ -96,21 +81,13 @@ The reference and main triggers, alongside the selection criteria applied to est
 | Main trigger         | Ele27\_WPTight\_Gsf |   | Ele35\_WPTight\_Gsf |   | Ele32\_WPTight\_Gsf |
 
 
-
-
-
-
-| $$\textbf{Selection cuts}$$      | 
-| ------------------------------------------------------------------- |
-| $$\text{Luminosity calibration}$$                                     |
-| $$\text{MET filters}$$                        |
-| $$N(bjet) \geq 1$$                           |
-| $$N(\mu) = 1$$                        |
-| $$N(e) = 1$$                      |
-
-
-
-
+| Selection cuts      | 
+| ---------------------------------|
+| Luminosity calibration            |
+| MET filters                       |
+| $N(bjet) \geq 1$                   |
+| $N(\mu) = 1$                      |
+| $N(e) = 1$                       |
 
 #### Muon channel
 
@@ -121,19 +98,14 @@ The reference and main triggers, alongside the selection criteria applied to est
 
 
 
-
-
-| $$\textbf{Selection cuts}$$      | 
+| Selection cuts      | 
 | ------------------------------------------------------------------- |
-| $$\text{Luminosity calibration}$$                                     |
-| $$\text{MET filters}$$                        |
-| $$\Delta R (\mu, bjet) \gt 0.4$$                           |
-| $$N(bjet) \geq 1$$                           |
-| $$N(\mu) = 1$$                        |
-| $$N(e) = 1$$                       |
-
-
-
+| Luminosity calibration                                    |
+| MET filters                        |
+| $\Delta R (\mu, bjet) \gt 0.4$                           |
+| $N(bjet) \geq 1$                           |
+| $N(\mu) = 1$                        |
+| $N(e) = 1$                       |
 
 
 To test locally first (on [coffea-casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html)), can do e.g.:
@@ -142,16 +114,11 @@ To test locally first (on [coffea-casa](https://coffea-casa.readthedocs.io/en/la
 python run.py --processor trigger --channel ele --sample TTTo2L2Nu --executor iterative --year 2017 --nfiles 1 
 ```
 
-
-
 To see a description of all script parameters type:
-
-
 
 ```bash
 python run.py --help
 ```
-
 
 ### [TTBar Control Region Processor](processors/ttbar_processor.py) 
 
@@ -159,34 +126,31 @@ Processor use to estimate backgrounds in a $t\bar{t}$ control region.
 
 The processor applies the following pre-selection cuts
 
-
-
-
 | $$\textbf{Object}$$    | $$\textbf{Variable}$$          | $$\textbf{Cut}$$                                                    | 
 | ---------------------  | ------------------------------ | ------------------------------------------------------------------- |
 | $$\textbf{Electrons}$$ |                                |                                                                     |
-|                        | $$p_T$$                        | $$\geq 30 \; \text{GeV}$$                                           |
-|                        | $$\eta$$                       | $$ |\eta| \lt 1.44 \; \text{and} \; 1.57 \lt |\eta| \lt 2.5$$       |
-|                        | $$\text{pfRelIso04_all}$$      | $$\lt 0.25$$                                                        |
-|                        | $$\text{mvaFall17V2Iso_WP80}$$ if electron channel, else $$\text{mvaFall17V2Iso_WP90}$$ | $$\text{True}$$|
+|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $\eta$                       | $\| \eta \| < 1.44$ and $1.57 < \| \eta \| < 2.5$       |
+|                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
+|                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
-|                        | $$p_T$$                        | $$\geq 30 \; \text{GeV}$$                                           |
-|                        | $$\eta$$                       | $$ |\eta| \lt 2.4$$                                                 |
-|                        | $$\text{pfRelIso04_all}$$      | $$\lt 0.25$$                                                        |
-|                        | $$\text{tightId}$$             | $$\text{True}$$                                                     |
+|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $\eta$                       | $\lt 2.4$                                                 |
+|                        | pfRelIso04_all               | $\lt 0.25$                                                        |
+|                        | tightId                      | $\text{True}$                   |
 | $$\textbf{Taus}$$      |                                |                                                                     |
-|                        | $$p_T$$                        | $$\gt 20 \; \text{GeV}$$                                            |
-|                        | $$\eta$$                       | $$\lt 2.3$$                                                 |
-|                        | $$dz$$                         | $$\lt 0.2$$                                                         | 
-|                        | $$\text{idDeepTau2017v2p1VSjet}$$     | $$\gt 8$$                                                           |
-|                        | $$\text{idDeepTau2017v2p1VSe}$$       | $$\gt 8$$                                                           |
-|                        | $$\text{idDeepTau2017v2p1VSmu}$$      | $$\gt 1$$                                                           |
+|                        | $p_T$                        | $\geq 20 \\; \text{GeV} $                                               |
+|                        | $\eta$                       | $\lt 2.3$                                                 |
+|                        | $dz$                         | $\lt 0.2$                                                        | 
+|                        | idDeepTau2017v2p1VSjet       | $\gt 8$                                                           |
+|                        | idDeepTau2017v2p1VSe         | $\gt 8$                                                           |
+|                        | idDeepTau2017v2p1VSmu        | $\gt 1$                                                           |
 | $$\textbf{Jets}$$      |                                |                                                                     |
-|                        | $$p_T$$                        | $$\geq 20 \; \text{GeV}$$                                           |
-|                        | $$\eta$$                       | $$ \lt 2.4$$                                                 |
-|                        | $$\text{JetId}$$               | $$6$$                                                               |
-|                        | $$\text{puId}$$                | $$7$$                                                               |
-|                        | $$\text{btagDeepFlavB}$$       | $$\gt \textbf{Medium}$$                                             |
+|                        | $p_T$                        |  $\geq 20 \\; \text{GeV} $                                            |
+|                        | $\eta$                       | $\lt 2.4$                                                 |
+|                        | JetId                        | $6$                                                               |
+|                        | puId                          | $7$                                                               |
+|                        | btagDeepFlavB                | $\gt$ Medium WP                                          |
 
 
 
@@ -194,16 +158,16 @@ and additional selection cuts for each channel:
 
 #### Electron channel
 
-| $$\textbf{Selection cuts}$$      | 
+| Selection cuts      | 
 | ---------------------------------|
-| $$\text{Electron Trigger}$$      |
-| $$\text{Luminosity calibration}$$                  |
-| $$\text{MET filters}$$           |
-| $$p_T^{miss}\gt 50\;\text{GeV}$$ |
-| $$N(bjet) = 2$$                  |
-| $$N(\tau) = 0$$                  |
-| $$N(\mu) = 0$$                   |
-| $$N(e) = 1$$                     |
+| Electron Trigger      |
+| Luminosity calibration                  |
+| MET filters           |
+| $p_T^{miss}\gt 50 \\; \text{GeV}$ |
+| $N(bjet) = 2$                  |
+| $N(\tau) = 0$                  |
+| $N(\mu) = 0$                   |
+| $N(e) = 1$                    |
 
 
 
@@ -211,29 +175,25 @@ and additional selection cuts for each channel:
 #### Muon channel
 
 
-| $$\textbf{Selection cuts}$$      | 
+| Selection cuts      | 
 | ---------------------------------|
-| $$\text{Muon Trigger}$$          |
-| $$\text{Luminosity calibration}$$                  |
-| $$\text{MET filters}$$           |
-| $$\Delta R (\mu, bjet) \gt 0.4$$ |
-| $$p_T^{miss}\gt 50\;\text{GeV}$$ |
-| $$N(bjet) = 2$$                  |
-| $$N(\tau) = 0$$                  |
-| $$N(e) = 0$$                     |
-| $$N(\mu) = 1$$                   |
-
+| Muon Trigger          |
+| Luminosity calibration                  |
+| MET filters           |
+| $\Delta R (\mu, bjet) \gt 0.4$ |
+| $p_T^{miss}\gt 50 \\; \text{GeV}$ |
+| $N(bjet) = 2$                  |
+| $N(\tau) = 0$                  |
+| $N(e) = 0$                     |
+| $N(\mu) = 1$                   |
 
 
 To test locally first (on [coffea-casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html)), can do e.g.:
 
-
 ```bash
 python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor iterative --year 2017 --nfiles 1 
 ```
-
 To see a description of all script parameters type:
-
 
 ```bash
 python run.py --help
@@ -241,13 +201,12 @@ python run.py --help
 
 #### Notes: 
 * Currently, the processors are only functional for the year 2017. 
-* coffea-casa is faster and more convenient, however still somewhat experimental so for large of inputs and/or processors which may require heavier cpu/memory Condor is recommended (see next section).
+* [coffea-casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) is faster and more convenient, however still somewhat experimental so for large of inputs and/or processors which may require heavier cpu/memory Condor is recommended (see next section).
 
 
 ## Submitting Condor jobs
 
 To do
-
 
 ## Scale factors
 
