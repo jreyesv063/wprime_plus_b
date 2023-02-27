@@ -58,79 +58,144 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         # open lumi masks
         with open("/home/cms-jovyan/wprime_plus_b/data/lumi_masks.pkl", "rb") as handle:
             self._lumi_mask = pickle.load(handle)
-        # output histograms
-        self.make_output = lambda: {
-            "sumw": 0,
-            "cutflow": {},
-            "electron_kin": hist2.Hist(
-                hist2.axis.Variable(
-                    [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
-                    name="electron_pt",
-                    label=r"electron $p_T$ [GeV]",
+            
+        # output electron histograms
+        if self._channel == "ele":
+            self.make_output = lambda: {
+                "sumw": 0,
+                "cutflow": {},
+                "jet_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
+                        name="jet_pt",
+                        label=r"bJet $p_T$ [GeV]",
+                    ),
+                    hist2.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
+                    hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(
-                    25, 0, 1, name="electron_relIso", label="electron RelIso"
+                "met_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [50, 75, 100, 125, 150, 175, 200, 300, 500],
+                        name="met",
+                        label=r"$p_T^{miss}$ [GeV]",
+                    ),
+                    hist2.axis.Regular(
+                        50, -4.0, 4.0, name="met_phi", label=r"$\phi(p_T^{miss})$"
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(
-                    50, -2.4, 2.4, name="electron_eta", label="electron $\eta$"
+                "electron_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
+                        name="electron_pt",
+                        label=r"electron $p_T$ [GeV]",
+                    ),
+                    hist2.axis.Regular(
+                        25, 0, 1, name="electron_relIso", label="electron RelIso"
+                    ),
+                    hist2.axis.Regular(
+                        50, -2.4, 2.4, name="electron_eta", label="electron $\eta$"
+                    ),
+                    hist2.axis.Regular(
+                        50, -4.0, 4.0, name="electron_phi", label="electron $\phi$"
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(
-                    50, -4.0, 4.0, name="electron_phi", label="electron $\phi$"
+                "electron_bjet_kin": hist2.Hist(
+                    hist2.axis.Regular(
+                        30, 0, 5, name="electron_bjet_dr", label="$\Delta R(e, bJet)$"
+                    ),
+                    hist2.axis.Variable(
+                        [40, 75, 100, 125, 150, 175, 200, 300, 500],
+                        name="invariant_mass",
+                        label=r"$m(e, bJet)$ [GeV]",
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.storage.Weight(),
-            ),
-            "muon_kin": hist2.Hist(
-                hist2.axis.Variable(
-                    [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
-                    name="muon_pt",
-                    label=r"muon $p_T$ [GeV]",
+                "electron_met_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                        name="electron_met_transverse_mass", 
+                        label=r"$m_T(e, p_T^{miss})$ [GeV]"
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(25, 0, 1, name="muon_relIso", label="muon RelIso"),
-                hist2.axis.Regular(50, -2.4, 2.4, name="muon_eta", label="muon $\eta$"),
-                hist2.axis.Regular(50, -4.0, 4.0, name="muon_phi", label="muon phi"),
-                hist2.storage.Weight(),
-            ),
-            "jet_kin": hist2.Hist(
-                hist2.axis.Variable(
-                    [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
-                    name="jet_pt",
-                    label=r"bJet $p_T$ [GeV]",
+                "electron_bjet_met_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                        name="electron_total_transverse_mass",
+                        label=r"$m_T^{tot}(e, bJet, p_T^{miss})$ [GeV]",
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
-                hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
-                hist2.storage.Weight(),
-            ),
-            "met_kin": hist2.Hist(
-                hist2.axis.Variable(
-                    [50, 75, 100, 125, 150, 175, 200, 300, 500],
-                    name="met",
-                    label=r"$p_T^{miss}$ [GeV]",
+            }
+        
+        # output muon histograms
+        if self._channel == "mu":
+            self.make_output = lambda: {
+                "sumw": 0,
+                "cutflow": {},
+                "jet_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
+                        name="jet_pt",
+                        label=r"bJet $p_T$ [GeV]",
+                    ),
+                    hist2.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
+                    hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(
-                    50, -4.0, 4.0, name="met_phi", label=r"$\phi(p_T^{miss})$"
+                "met_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [50, 75, 100, 125, 150, 175, 200, 300, 500],
+                        name="met",
+                        label=r"$p_T^{miss}$ [GeV]",
+                    ),
+                    hist2.axis.Regular(
+                        50, -4.0, 4.0, name="met_phi", label=r"$\phi(p_T^{miss})$"
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.storage.Weight(),
-            ),
-            "mix_kin": hist2.Hist(
-                hist2.axis.Regular(
-                    40,
-                    10,
-                    800,
-                    name="electron_met_mt",
-                    label=r"$M_T$(electron, bJet) [GeV]",
+                "muon_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
+                        name="muon_pt",
+                        label=r"muon $p_T$ [GeV]",
+                    ),
+                    hist2.axis.Regular(25, 0, 1, name="muon_relIso", label="muon RelIso"),
+                    hist2.axis.Regular(50, -2.4, 2.4, name="muon_eta", label="muon $\eta$"),
+                    hist2.axis.Regular(50, -4.0, 4.0, name="muon_phi", label="muon phi"),
+                    hist2.storage.Weight(),
                 ),
-                hist2.axis.Regular(
-                    40, 10, 800, name="muon_met_mt", label=r"$M_T$(muon, bJet) [GeV]"
+                "muon_bjet_kin": hist2.Hist(
+                    hist2.axis.Regular(
+                        30, 0, 5, name="muon_bjet_dr", label="$\Delta R(\mu, bJet)$"
+                    ),
+                    hist2.axis.Variable(
+                        [40, 75, 100, 125, 150, 175, 200, 300, 500],
+                        name="invariant_mass",
+                        label=r"$m(\mu, bJet)$ [GeV]",
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                # hist2.axis.Regular(
-                #    30, 0, 5, name="electron_bjet_dr", label="$\Delta R$(electron, bJet)"
-                # ),
-                hist2.axis.Regular(
-                    30, 0, 5, name="muon_bjet_dr", label="$\Delta R$(muon, bJet)"
+                "muon_met_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                        name="muon_met_transverse_mass", 
+                        label=r"$m_T(\mu, p_T^{miss})$ [GeV]"
+                    ),
+                    hist2.storage.Weight(),
                 ),
-                hist2.storage.Weight(),
-            ),
-        }
+                "muon_bjet_met_kin": hist2.Hist(
+                    hist2.axis.Variable(
+                        [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                        name="muon_total_transverse_mass",
+                        label=r"$m_T^{tot}(\mu, bJet, p_T^{miss})$ [GeV]",
+                    ),
+                    hist2.storage.Weight(),
+                )
+            }
 
     @property
     def accumulator(self):
@@ -223,7 +288,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             & (events.Tau.dz < 0.2)
         )
         n_good_taus = ak.sum(good_taus, axis=1)
-        taus = ak.firsts(events.Tau[good_taus])
+        taus = ak.firsts(events.Tau[np.logical_and(good_taus, n_good_taus == 1)])
         taus_p4 = build_p4(taus)
 
         # b-jets
@@ -248,22 +313,35 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             mod=self._yearmod,
         )
 
-        # lepton-bjet delta R
+        # lepton-bjet delta R and invariant mass
         ele_bjet_dr = candidatebjet.delta_r(electrons_p4)
+        ele_bjet_mass = (electrons_p4 + candidatebjet).mass
         mu_bjet_dr = candidatebjet.delta_r(muons_p4)
+        mu_bjet_mass = (muons_p4 + candidatebjet).mass
+
 
         # lepton-MET transverse mass
-        mt_ele_met = np.sqrt(
+        ele_met_tranverse_mass = np.sqrt(
             2.0
             * electrons_p4.pt
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(electrons_p4.delta_phi(met)))
         )
-        mt_mu_met = np.sqrt(
+        mu_met_transverse_mass = np.sqrt(
             2.0
             * muons_p4.pt
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(muons_p4.delta_phi(met)))
+        )
+        
+        # lepton-bJet-MET total transverse mass
+        ele_total_transverse_mass = np.sqrt(
+            (electrons_p4.pt + candidatebjet.pt + met.pt) ** 2
+            - (electrons_p4 + candidatebjet + met).pt ** 2
+        )
+        mu_total_transverse_mass = np.sqrt(
+            (muons_p4.pt + candidatebjet.pt + met.pt) ** 2
+            - (muons_p4 + candidatebjet + met).pt ** 2
         )
 
         # weights
@@ -398,27 +476,52 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             met_phi=normalize(met.phi, cut),
             weight=region_weight,
         )
-        self.output["electron_kin"].fill(
-            electron_pt=normalize(electrons.pt, cut),
-            electron_relIso=normalize(ele_reliso, cut),
-            electron_eta=normalize(electrons.eta, cut),
-            electron_phi=normalize(electrons.phi, cut),
-            weight=region_weight,
-        )
-        self.output["muon_kin"].fill(
-            muon_pt=normalize(muons.pt, cut),
-            muon_relIso=normalize(mu_reliso, cut),
-            muon_eta=normalize(muons.eta, cut),
-            muon_phi=normalize(muons.phi, cut),
-            weight=region_weight,
-        )
-        self.output["mix_kin"].fill(
-            electron_met_mt=normalize(mt_ele_met, cut),
-            muon_met_mt=normalize(mt_mu_met, cut),
-            # electron_bjet_dr=normalize(ele_bjet_dr, cut),
-            muon_bjet_dr=normalize(mu_bjet_dr, cut),
-            weight=region_weight,
-        )
+        if self._channel == "ele":
+            self.output["electron_kin"].fill(
+                electron_pt=normalize(electrons.pt, cut),
+                electron_relIso=normalize(ele_reliso, cut),
+                electron_eta=normalize(electrons.eta, cut),
+                electron_phi=normalize(electrons.phi, cut),
+                weight=region_weight,
+            )
+            self.output["electron_bjet_kin"].fill(
+                electron_bjet_dr=normalize(ele_bjet_dr, cut),
+                invariant_mass=normalize(ele_bjet_mass, cut),
+                weight=region_weight,
+            )
+            self.output["electron_met_kin"].fill(
+                electron_met_transverse_mass=normalize(ele_met_tranverse_mass, cut),
+                weight=region_weight,
+            )
+            self.output["electron_bjet_met_kin"].fill(
+                electron_total_transverse_mass=normalize(
+                    ele_total_transverse_mass, cut
+                ),
+                weight=region_weight,
+            )
+            
+        if self._channel == "mu":
+            self.output["muon_kin"].fill(
+                muon_pt=normalize(muons.pt, cut),
+                muon_relIso=normalize(mu_reliso, cut),
+                muon_eta=normalize(muons.eta, cut),
+                muon_phi=normalize(muons.phi, cut),
+                weight=region_weight,
+            )
+            self.output["muon_bjet_kin"].fill(
+                muon_bjet_dr=normalize(mu_bjet_dr, cut),
+                invariant_mass=normalize(mu_bjet_mass, cut),
+                weight=region_weight,
+            )
+            self.output["muon_met_kin"].fill(
+                muon_met_transverse_mass=normalize(mu_met_transverse_mass, cut),
+                weight=region_weight,
+            )
+            self.output["muon_bjet_met_kin"].fill(
+                muon_total_transverse_mass=normalize(mu_total_transverse_mass, cut),
+                weight=region_weight,
+            )
+            
             
         # cutflow
         cutflow_selections = []

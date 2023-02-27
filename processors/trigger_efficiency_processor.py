@@ -105,25 +105,60 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 ),
                 hist2.storage.Weight(),
             ),
-            "mix_kin": hist2.Hist(
+            "electron_bjet_kin": hist2.Hist(
                 hist2.axis.StrCategory([], name="region", growth=True),
                 hist2.axis.Regular(
-                    40, 10, 800, name="electron_met_mt", label=r"$M_T$(electron, bJet) [GeV]"
+                    30, 0, 5, name="electron_bjet_dr", label="$\Delta R(e, bJet)$"
                 ),
+                hist2.axis.Variable(
+                    [40, 75, 100, 125, 150, 175, 200, 300, 500],
+                    name="invariant_mass",
+                    label=r"$m(e, bJet)$ [GeV]",
+                ),
+                hist2.storage.Weight(),
+            ),
+            "muon_bjet_kin": hist2.Hist(
+                hist2.axis.StrCategory([], name="region", growth=True),
                 hist2.axis.Regular(
-                    40, 10, 800, name="muon_met_mt", label=r"$M_T$(muon, bJet) [GeV]"
+                    30, 0, 5, name="muon_bjet_dr", label="$\Delta R(\mu, bJet)$"
                 ),
-                hist2.axis.Regular(
-                    30, 0, 5, name="electron_bjet_dr", label="$\Delta R$(electron, bJet)"
+                hist2.axis.Variable(
+                    [40, 75, 100, 125, 150, 175, 200, 300, 500],
+                    name="invariant_mass",
+                    label=r"$m(\mu, bJet)$ [GeV]",
                 ),
-                 hist2.axis.Regular(
-                    30, 0, 5, name="muon_bjet_dr", label="$\Delta R$(muon, bJet)"
+                hist2.storage.Weight(),
+            ),
+            "lep_met_kin": hist2.Hist(
+                hist2.axis.StrCategory([], name="region", growth=True),
+                hist2.axis.Variable(
+                    [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                    name="electron_met_transverse_mass", 
+                    label=r"$m_T(e, p_T^{miss})$ [GeV]"
+                ),
+                hist2.axis.Variable(
+                    [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                    name="muon_met_transverse_mass", 
+                    label=r"$m_T(\mu, p_T^{miss})$ [GeV]"
+                ),
+                hist2.storage.Weight(),
+            ),
+            "lep_bjet_met_kin": hist2.Hist(
+                hist2.axis.StrCategory([], name="region", growth=True),
+                hist2.axis.Variable(
+                    [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                    name="electron_total_transverse_mass",
+                    label=r"$m_T^{tot}(e, bJet, p_T^{miss})$ [GeV]",
+                ),
+                hist2.axis.Variable(
+                    [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
+                    name="muon_total_transverse_mass",
+                    label=r"$m_T^{tot}(\mu, bJet, p_T^{miss})$ [GeV]",
                 ),
                 hist2.storage.Weight(),
             ),
         }
 
-        
     @property
     def accumulator(self):
         return self._accumulator
@@ -229,24 +264,36 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             mod=self._yearmod,
         )
         
-        # lepton-bjet delta R
+        # lepton-bjet delta R and invariant mass
         ele_bjet_dr = candidatebjet.delta_r(electrons_p4)
+        ele_bjet_mass = (electrons_p4 + candidatebjet).mass
         mu_bjet_dr = candidatebjet.delta_r(muons_p4)
+        mu_bjet_mass = (muons_p4 + candidatebjet).mass
 
         # lepton-MET transverse mass
-        mt_ele_met = np.sqrt(
+        ele_met_tranverse_mass = np.sqrt(
             2.0
             * electrons_p4.pt
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(electrons_p4.delta_phi(met)))
         )
-        mt_mu_met = np.sqrt(
+        mu_met_transverse_mass = np.sqrt(
             2.0
             * muons_p4.pt
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(muons_p4.delta_phi(met)))
         )
-            
+        
+        # lepton-bJet-MET total transverse mass
+        ele_total_transverse_mass = np.sqrt(
+            (electrons_p4.pt + candidatebjet.pt + met.pt) ** 2
+            - (electrons_p4 + candidatebjet + met).pt ** 2
+        )
+        mu_total_transverse_mass = np.sqrt(
+            (muons_p4.pt + candidatebjet.pt + met.pt) ** 2
+            - (muons_p4 + candidatebjet + met).pt ** 2
+        )
+        
         # weights
         weights = Weights(nevents, storeIndividual=True)
         if self.isMC:
@@ -433,12 +480,30 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 muon_eta=normalize(muons.eta, cut),
                 weight=region_weight,
             )
-            self.output["mix_kin"].fill(
+            self.output["electron_bjet_kin"].fill(
                 region=region,
-                electron_met_mt=normalize(mt_ele_met, cut),
-                muon_met_mt=normalize(mt_mu_met, cut),
                 electron_bjet_dr=normalize(ele_bjet_dr, cut),
+                invariant_mass=normalize(ele_bjet_mass, cut),
+                weight=region_weight,
+            )
+            self.output["muon_bjet_kin"].fill(
+                region=region,
                 muon_bjet_dr=normalize(mu_bjet_dr, cut),
+                invariant_mass=normalize(mu_bjet_mass, cut),
+                weight=region_weight,
+            )
+            self.output["lep_met_kin"].fill(
+                region=region,
+                electron_met_transverse_mass=normalize(ele_met_tranverse_mass, cut),
+                muon_met_transverse_mass=normalize(mu_met_transverse_mass, cut),
+                weight=region_weight,
+            )
+            self.output["lep_bjet_met_kin"].fill(
+                region=region,
+                electron_total_transverse_mass=normalize(
+                    ele_total_transverse_mass, cut
+                ),
+                muon_total_transverse_mass=normalize(mu_total_transverse_mass, cut),
                 weight=region_weight,
             )
             
