@@ -97,7 +97,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 hist2.axis.StrCategory([], name="region", growth=True),
                 hist2.axis.Variable(
                     [50, 75, 100, 125, 150, 175, 200, 300, 500],
-                    name="met",
+                    name="met_pt",
                     label=r"$p_T^{miss}$ [GeV]",
                 ),
                 hist2.axis.Regular(
@@ -245,10 +245,10 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         # b-jets
         good_bjets = (
             (events.Jet.pt >= 20)
+            & (np.abs(events.Jet.eta) < 2.4)
             & (events.Jet.jetId == 6)
             & (events.Jet.puId == 7)
             & (events.Jet.btagDeepFlavB > self._btagDeepFlavB)
-            & (np.abs(events.Jet.eta) < 2.4)
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
         candidatebjet = ak.firsts(events.Jet[good_bjets])
@@ -461,7 +461,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
             self.output["met_kin"].fill(
                 region=region,
-                met=normalize(met.pt, cut),
+                met_pt=normalize(met.pt, cut),
                 met_phi=normalize(met.phi, cut),
                 weight=region_weight,
             )
