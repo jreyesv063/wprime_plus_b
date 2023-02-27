@@ -34,17 +34,17 @@ The processor applies the following pre-selection cuts
 | $$\textbf{Object}$$    | $$\textbf{Variable}$$          | $$\textbf{Cut}$$                                                    | 
 | ---------------------  | ------------------------------ | ------------------------------------------------------------------- |
 | $$\textbf{Electrons}$$ |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $p_T$                        | $\geq 30$ GeV                                           |
 |                        | $\eta$                       | $\| \eta \| < 1.44$ and $1.57 < \| \eta \| < 2.5$       |
 |                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
 |                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $p_T$                        | $\geq 30$ GeV                                          |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | pfRelIso04_all       | $\lt 0.25$                                                        |
 |                        | mediumId (ele) tightId (mu) | $\text{True}$                   |
 | $$\textbf{Jets}$$      |                                |                                                                     |
-|                        | $p_T$                        |  $\geq 20 \\; \text{GeV} $                                            |
+|                        | $p_T$                        |  $\geq 20$ GeV                                       |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | JetId                        | $6$                                                               |
 |                        | puId                          | $7$                                                               |
@@ -129,24 +129,24 @@ The processor applies the following pre-selection cuts
 | $$\textbf{Object}$$    | $$\textbf{Variable}$$          | $$\textbf{Cut}$$                                                    | 
 | ---------------------  | ------------------------------ | ------------------------------------------------------------------- |
 | $$\textbf{Electrons}$$ |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $p_T$                        | $\geq 30$ GeV                                        |
 |                        | $\eta$                       | $\| \eta \| < 1.44$ and $1.57 < \| \eta \| < 2.5$       |
 |                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
 |                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30 \\; \text{GeV} $                                          |
+|                        | $p_T$                        | $\geq 30$ GeV                                         |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | pfRelIso04_all               | $\lt 0.25$                                                        |
 |                        | tightId                      | $\text{True}$                   |
 | $$\textbf{Taus}$$      |                                |                                                                     |
-|                        | $p_T$                        | $\geq 20 \\; \text{GeV} $                                               |
+|                        | $p_T$                        | $\geq 20$ GeV                                               |
 |                        | $\eta$                       | $\lt 2.3$                                                 |
 |                        | $dz$                         | $\lt 0.2$                                                        | 
 |                        | idDeepTau2017v2p1VSjet       | $\gt 8$                                                           |
 |                        | idDeepTau2017v2p1VSe         | $\gt 8$                                                           |
 |                        | idDeepTau2017v2p1VSmu        | $\gt 1$                                                           |
 | $$\textbf{Jets}$$      |                                |                                                                     |
-|                        | $p_T$                        |  $\geq 20 \\; \text{GeV} $                                            |
+|                        | $p_T$                        |  $\geq 20$ GeV                                            |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | JetId                        | $6$                                                               |
 |                        | puId                          | $7$                                                               |
@@ -163,7 +163,7 @@ and additional selection cuts for each channel:
 | Electron Trigger      |
 | Luminosity calibration                  |
 | MET filters           |
-| $p_T^{miss}\gt 50 \\; \text{GeV}$ |
+| $p_T^{miss}\gt 50$ GeV |
 | $N(bjet) = 2$                  |
 | $N(\tau) = 0$                  |
 | $N(\mu) = 0$                   |
@@ -181,7 +181,7 @@ and additional selection cuts for each channel:
 | Luminosity calibration                  |
 | MET filters           |
 | $\Delta R (\mu, bjet) \gt 0.4$ |
-| $p_T^{miss}\gt 50 \\; \text{GeV}$ |
+| $p_T^{miss}\gt 50$ GeV |
 | $N(bjet) = 2$                  |
 | $N(\tau) = 0$                  |
 | $N(e) = 0$                     |
