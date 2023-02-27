@@ -61,7 +61,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         # output histograms
         self.make_output = lambda: {
             "sumw": 0,
-            "cut_flow": {},
+            "cutflow": {},
             "electron_kin": hist2.Hist(
                 hist2.axis.Variable(
                     [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
@@ -132,23 +132,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             ),
         }
 
-    def add_selection(
-        self,
-        name: str,
-        sel: ak.Array,
-    ) -> None:
-        """
-        Adds selection to PackedSelection object and the cutflow dictionary
-        taken from: github.com/cmantill/boostedhiggs/blob/main/boostedhiggs/hwwprocessor.py
-        """
-        self.selections.add(name, sel)
-        selection = self.selections.all(*self.selections.names)
-        if self.isMC:
-            weight = self.weights.weight()
-            self.output['cut_flow'][name] = np.sum(weight[selection])
-        else:
-            self.output["cut_flow"][name] = np.sum(selection)
-
     @property
     def accumulator(self):
         return self._accumulator
@@ -158,7 +141,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         nevents = len(events)
         self.isMC = hasattr(events, "genWeight")
         self.output = self.make_output()
-        self.output["cut_flow"]["nevents"] = nevents
+        self.output["cutflow"]["nevents"] = nevents
 
         # luminosity
         if not self.isMC:
@@ -359,20 +342,20 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 )
         # selections
         self.selections = PackedSelection()
-        self.add_selection("lumi", lumi_mask)
-        self.add_selection("metfilters", metfilters)
+        self.selections.add("lumi", lumi_mask)
+        self.selections.add("metfilters", metfilters)
         if self._channel == "ele":
-            self.add_selection("trigger_ele", trigger["ele"])
-            self.add_selection("good_electron", n_good_electrons == 1)
-            self.add_selection("good_muon", n_good_muons == 0)
+            self.selections.add("trigger_ele", trigger["ele"])
+            self.selections.add("good_electron", n_good_electrons == 1)
+            self.selections.add("good_muon", n_good_muons == 0)
         elif self._channel == "mu":
-            self.add_selection("trigger_mu", trigger["mu"])
-            self.add_selection("good_electron", n_good_electrons == 0)
-            self.add_selection("good_muon", n_good_muons == 1)
-        self.add_selection("deltaR", mu_bjet_dr > 0.4)
-        self.add_selection("good_tau", n_good_taus == 0)
-        self.add_selection("met_pt", met.pt > 50)
-        self.add_selection("two_bjets", n_good_bjets == 2)
+            self.selections.add("trigger_mu", trigger["mu"])
+            self.selections.add("good_electron", n_good_electrons == 0)
+            self.selections.add("good_muon", n_good_muons == 1)
+        self.selections.add("deltaR", mu_bjet_dr > 0.4)
+        self.selections.add("good_tau", n_good_taus == 0)
+        self.selections.add("met_pt", met.pt > 50)
+        self.selections.add("two_bjets", n_good_bjets == 2)
 
         # regions
         regions = {
@@ -404,41 +387,49 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         cut = self.selections.all(*selections)
         region_weight = self.weights.weight()[cut]
 
-        def fill():
-            self.output["jet_kin"].fill(
-                jet_pt=normalize(candidatebjet.pt, cut),
-                jet_eta=normalize(candidatebjet.eta, cut),
-                jet_phi=normalize(candidatebjet.phi, cut),
-                weight=region_weight,
-            )
-            self.output["met_kin"].fill(
-                met=normalize(met.pt, cut),
-                met_phi=normalize(met.phi, cut),
-                weight=region_weight,
-            )
-            self.output["electron_kin"].fill(
-                electron_pt=normalize(electrons.pt, cut),
-                electron_relIso=normalize(ele_reliso, cut),
-                electron_eta=normalize(electrons.eta, cut),
-                electron_phi=normalize(electrons.phi, cut),
-                weight=region_weight,
-            )
-            self.output["muon_kin"].fill(
-                muon_pt=normalize(muons.pt, cut),
-                muon_relIso=normalize(mu_reliso, cut),
-                muon_eta=normalize(muons.eta, cut),
-                muon_phi=normalize(muons.phi, cut),
-                weight=region_weight,
-            )
-            self.output["mix_kin"].fill(
-                electron_met_mt=normalize(mt_ele_met, cut),
-                muon_met_mt=normalize(mt_mu_met, cut),
-                # electron_bjet_dr=normalize(ele_bjet_dr, cut),
-                muon_bjet_dr=normalize(mu_bjet_dr, cut),
-                weight=region_weight,
-            )
-
-        fill()
+        self.output["jet_kin"].fill(
+            jet_pt=normalize(candidatebjet.pt, cut),
+            jet_eta=normalize(candidatebjet.eta, cut),
+            jet_phi=normalize(candidatebjet.phi, cut),
+            weight=region_weight,
+        )
+        self.output["met_kin"].fill(
+            met=normalize(met.pt, cut),
+            met_phi=normalize(met.phi, cut),
+            weight=region_weight,
+        )
+        self.output["electron_kin"].fill(
+            electron_pt=normalize(electrons.pt, cut),
+            electron_relIso=normalize(ele_reliso, cut),
+            electron_eta=normalize(electrons.eta, cut),
+            electron_phi=normalize(electrons.phi, cut),
+            weight=region_weight,
+        )
+        self.output["muon_kin"].fill(
+            muon_pt=normalize(muons.pt, cut),
+            muon_relIso=normalize(mu_reliso, cut),
+            muon_eta=normalize(muons.eta, cut),
+            muon_phi=normalize(muons.phi, cut),
+            weight=region_weight,
+        )
+        self.output["mix_kin"].fill(
+            electron_met_mt=normalize(mt_ele_met, cut),
+            muon_met_mt=normalize(mt_mu_met, cut),
+            # electron_bjet_dr=normalize(ele_bjet_dr, cut),
+            muon_bjet_dr=normalize(mu_bjet_dr, cut),
+            weight=region_weight,
+        )
+            
+        # cutflow
+        cutflow_selections = []
+        for selection in regions[self._channel]:
+            cutflow_selections.append(selection)
+            cutflow_cut = self.selections.all(*cutflow_selections)
+            if self.isMC:
+                cutflow_weight = self.weights.weight()
+                self.output["cutflow"][selection] = np.sum(cutflow_weight[cutflow_cut])
+            else:
+                self.output["cutflow"][selection] = np.sum(cutflow_cut)
 
         return {dataset: self.output}
 
