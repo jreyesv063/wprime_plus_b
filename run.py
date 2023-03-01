@@ -7,13 +7,47 @@ import dask
 import importlib.resources
 from datetime import datetime
 from coffea import processor
-from dask.distributed import Client
-from distributed.diagnostics.plugin import UploadDirectory
 
 
 def main(args):
     loc_base = os.environ["PWD"]
 
+    # executors and arguments
+    executors = {
+        "iterative": processor.iterative_executor,
+        "futures": processor.futures_executor,
+        "dask": processor.dask_executor,
+    }
+    executor_args = {
+        "schema": processor.NanoAODSchema,
+    }
+
+    if args.executor == "futures":
+        executor_args.update({"workers": args.workers})
+        
+    if args.executor == "dask":
+        from dask.distributed import Client
+        from distributed.diagnostics.plugin import UploadDirectory
+        
+        client = Client(
+            "tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
+        )
+        try:
+            client.register_worker_plugin(
+                UploadDirectory(
+                    f"{loc_base}", restart=True, update_path=True
+                ),
+                nanny=True,
+            )
+            print(f"Uploaded {loc_base} succesfully")
+        except OSError:
+            print("Failed to upload the directory")
+         
+        print(client.run(os.listdir))
+        print(client.run(os.listdir,"dask-worker-space"))
+        
+        executor_args.update({"client": client})
+        
     # load fileset
     with open(f"{loc_base}/data/simplified_samples.json", "r") as f:
         simplified_samples = json.load(f)[args.year]
@@ -41,33 +75,6 @@ def main(args):
 
         proc = TriggerEfficiencyProcessor
         
-    # executors and arguments
-    executors = {
-        "iterative": processor.iterative_executor,
-        "futures": processor.futures_executor,
-        "dask": processor.dask_executor,
-    }
-    executor_args = {
-        "schema": processor.NanoAODSchema,
-    }
-
-    if args.executor == "futures":
-        executor_args.update({"workers": args.workers})
-    if args.executor == "dask":
-        client = Client(
-            "tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
-        )
-        try:
-            client.register_worker_plugin(
-                UploadDirectory(
-                    f"{loc_base}/wprime_plus_b", restart=True, update_path=True
-                ),
-                nanny=True,
-            )
-        except OSError:
-            print("Failed to upload the directory")
-        executor_args.update({"client": client})
-        
     # run processor
     out = processor.run_uproot_job(
         fileset,
@@ -83,7 +90,7 @@ def main(args):
         executor_args=executor_args,
     )
 
-    # save dictionary with cutflows
+    # save output
     date = datetime.today().strftime("%Y-%m-%d")
     if not os.path.exists(
         args.output_location
