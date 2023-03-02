@@ -24,36 +24,28 @@ def main(args):
 
     if args.executor == "futures":
         executor_args.update({"workers": args.workers})
-        
     if args.executor == "dask":
         from dask.distributed import Client
         from distributed.diagnostics.plugin import UploadDirectory
-        
+
         client = Client(
             "tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
         )
         try:
             client.register_worker_plugin(
-                UploadDirectory(
-                    f"{loc_base}", restart=True, update_path=True
-                ),
+                UploadDirectory(f"{loc_base}", restart=True, update_path=True),
                 nanny=True,
             )
             print(f"Uploaded {loc_base} succesfully")
         except OSError:
             print("Failed to upload the directory")
-         
-        print(client.run(os.listdir))
-        print(client.run(os.listdir,"dask-worker-space"))
-        
         executor_args.update({"client": client})
-        
     # load fileset
-    with open(f"{loc_base}/data/simplified_samples.json", "r") as f:
-        simplified_samples = json.load(f)[args.year]
+    with open(f"wprime_plus_b/fileset/fileset_{args.year}_UL_NANO.json", "r") as handle:
+        data = json.load(handle)
+    with open("wprime_plus_b/data/simplified_samples.json", "r") as handle:
+        simplified_samples = json.load(handle)[args.year]
         simplified_samples_r = {v: k for k, v in simplified_samples.items()}
-    with open(f"{loc_base}/data/fileset/fileset_{args.year}_UL_NANO.json", "r") as f:
-        data = json.load(f)
     for key, val in data.items():
         if simplified_samples_r[args.sample] in key:
             sample = simplified_samples[key]
@@ -67,14 +59,15 @@ def main(args):
                     ]
     # define processor
     if args.processor == "ttbar":
-        from processors.ttbar_processor import TTbarControlRegionProcessor
-        
+        from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
+
         proc = TTbarControlRegionProcessor
     if args.processor == "trigger":
-        from processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
+        from wprime_plus_b.processors.trigger_efficiency_processor import (
+            TriggerEfficiencyProcessor,
+        )
 
         proc = TriggerEfficiencyProcessor
-        
     # run processor
     out = processor.run_uproot_job(
         fileset,
@@ -122,7 +115,7 @@ def main(args):
         + "/"
         + args.channel
         + "/"
-        + f"{args.sample}_out.pkl",
+        + f"{args.sample}.pkl",
         "wb",
     ) as handle:
         pickle.dump(out, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -180,7 +173,7 @@ if __name__ == "__main__":
         "--output_location",
         dest="output_location",
         type=str,
-        default="/home/cms-jovyan/wprime_plus_b/outfiles/",
+        default="./outfiles/",
         help="output location",
     )
 
