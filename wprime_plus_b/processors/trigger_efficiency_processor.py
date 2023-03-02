@@ -16,7 +16,7 @@ from .corrections import (
     add_electronTrigger_weight,
     add_muon_weight,
     add_muonTriggerIso_weight,
-    get_met_corrections
+    get_met_corrections,
 )
 
 
@@ -36,24 +36,18 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         self._dir_name = dir_name
 
         # open triggers
-        with open("/home/cms-jovyan/wprime_plus_b/data/triggers.json", "r") as f:
+        with open("wprime_plus_b/data/triggers.json", "r") as f:
             self._triggers = json.load(f)[self._year]
-
         # open btagDeepFlavB
-        with open("/home/cms-jovyan/wprime_plus_b/data/btagDeepFlavB.json", "r") as f:
+        with open("wprime_plus_b/data/btagDeepFlavB.json", "r") as f:
             self._btagDeepFlavB = json.load(f)[self._year]
-
         # open met filters
         # https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
-        with open(
-            "/home/cms-jovyan/wprime_plus_b/data/metfilters.json", "rb"
-        ) as handle:
+        with open("wprime_plus_b/data/metfilters.json", "rb") as handle:
             self._metfilters = json.load(handle)[self._year]
-
         # open lumi masks
-        with open("/home/cms-jovyan/wprime_plus_b/data/lumi_masks.pkl", "rb") as handle:
+        with open("wprime_plus_b/data/lumi_masks.pkl", "rb") as handle:
             self._lumi_mask = pickle.load(handle)
-        
         # output histograms
         self.make_output = lambda: {
             "sumw": 0,
@@ -68,8 +62,12 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                     name="electron_pt",
                     label=r"electron $p_T$ [GeV]",
                 ),
-                hist2.axis.Regular(25, 0, 1, name="electron_relIso", label="electron RelIso"),
-                hist2.axis.Regular(50, -2.4, 2.4, name="electron_eta", label="electron $\eta$"),
+                hist2.axis.Regular(
+                    25, 0, 1, name="electron_relIso", label="electron RelIso"
+                ),
+                hist2.axis.Regular(
+                    50, -2.4, 2.4, name="electron_eta", label="electron $\eta$"
+                ),
                 hist2.storage.Weight(),
             ),
             "muon_kin": hist2.Hist(
@@ -86,9 +84,9 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             "jet_kin": hist2.Hist(
                 hist2.axis.StrCategory([], name="region", growth=True),
                 hist2.axis.Variable(
-                    [30, 60, 90, 120, 150, 180, 210, 240, 300, 500], 
-                    name="jet_pt", 
-                    label=r"bJet $p_T$ [GeV]"
+                    [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
+                    name="jet_pt",
+                    label=r"bJet $p_T$ [GeV]",
                 ),
                 hist2.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
                 hist2.storage.Weight(),
@@ -133,13 +131,13 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 hist2.axis.StrCategory([], name="region", growth=True),
                 hist2.axis.Variable(
                     [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
-                    name="electron_met_transverse_mass", 
-                    label=r"$m_T(e, p_T^{miss})$ [GeV]"
+                    name="electron_met_transverse_mass",
+                    label=r"$m_T(e, p_T^{miss})$ [GeV]",
                 ),
                 hist2.axis.Variable(
                     [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
-                    name="muon_met_transverse_mass", 
-                    label=r"$m_T(\mu, p_T^{miss})$ [GeV]"
+                    name="muon_met_transverse_mass",
+                    label=r"$m_T(\mu, p_T^{miss})$ [GeV]",
                 ),
                 hist2.storage.Weight(),
             ),
@@ -168,21 +166,19 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         nevents = len(events)
         self.isMC = hasattr(events, "genWeight")
         self.output = self.make_output()
-        self.output['cutflow']['nevents'] = nevents
-    
+        self.output["cutflow"]["nevents"] = nevents
+
         # luminosity
         if not self.isMC:
             lumi_mask = self._lumi_mask[self._year](events.run, events.luminosityBlock)
         else:
             lumi_mask = np.ones(len(events), dtype="bool")
-
         # MET filters
         metfilters = np.ones(nevents, dtype="bool")
         metfilterkey = "mc" if self.isMC else "data"
         for mf in self._metfilters[metfilterkey]:
             if mf in events.Flag.fields:
                 metfilters = metfilters & events.Flag[mf]
-
         # triggers
         trigger = {}
         for ch in ["ele", "mu"]:
@@ -190,7 +186,6 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             for t in self._triggers[ch]:
                 if t in events.HLT.fields:
                     trigger[ch] = trigger[ch] | events.HLT[t]
-
         # electrons
         good_electrons = (
             (events.Electron.pt >= 30)
@@ -208,20 +203,20 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 events.Electron.pfRelIso04_all < 0.25
                 if hasattr(events.Electron, "pfRelIso04_all")
                 else events.Electron.pfRelIso03_all < 0.25
-            ) 
+            )
         )
         n_good_electrons = ak.sum(good_electrons, axis=1)
-        electrons = ak.firsts(events.Electron[
-            np.logical_and(good_electrons, n_good_electrons == 1)
-        ])
+        electrons = ak.firsts(
+            events.Electron[np.logical_and(good_electrons, n_good_electrons == 1)]
+        )
         electrons_p4 = build_p4(electrons)
-    
+
         ele_reliso = (
             electrons.pfRelIso04_all
             if hasattr(electrons, "pfRelIso04_all")
             else electrons.pfRelIso03_all
         )
-        
+
         # muons
         good_muons = (
             (events.Muon.pt >= 30)
@@ -229,14 +224,14 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             & (events.Muon.mediumId if self._channel == "ele" else events.Muon.tightId)
             & (
                 events.Muon.pfRelIso04_all < 0.25
-                if hasattr(events.Muon, "pfRelIso04_all") 
+                if hasattr(events.Muon, "pfRelIso04_all")
                 else events.Muon.pfRelIso03_all < 0.25
-                )
+            )
         )
         n_good_muons = ak.sum(good_muons, axis=1)
         muons = ak.firsts(events.Muon[np.logical_and(good_muons, n_good_muons == 1)])
         muons_p4 = build_p4(muons)
-        
+
         mu_reliso = (
             muons.pfRelIso04_all
             if hasattr(muons, "pfRelIso04_all")
@@ -252,7 +247,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
         candidatebjet = ak.firsts(events.Jet[good_bjets])
-        
+
         # missing energy
         met = events.MET
         met["pt"], met["phi"] = get_met_corrections(
@@ -263,7 +258,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             npvs=events.PV.npvs,
             mod=self._yearmod,
         )
-        
+
         # lepton-bjet delta R and invariant mass
         ele_bjet_dr = candidatebjet.delta_r(electrons_p4)
         ele_bjet_mass = (electrons_p4 + candidatebjet).mass
@@ -283,7 +278,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(muons_p4.delta_phi(met)))
         )
-        
+
         # lepton-bJet-MET total transverse mass
         ele_total_transverse_mass = np.sqrt(
             (electrons_p4.pt + candidatebjet.pt + met.pt) ** 2
@@ -293,7 +288,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             (muons_p4.pt + candidatebjet.pt + met.pt) ** 2
             - (muons_p4 + candidatebjet + met).pt ** 2
         )
-        
+
         # weights
         weights = Weights(nevents, storeIndividual=True)
         if self.isMC:
@@ -323,48 +318,47 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
 
             # electron weights
             add_electronID_weight(
-                weights=weights, 
-                electron=ak.firsts(events.Electron[good_electrons]), 
-                year=self._year, 
+                weights=weights,
+                electron=ak.firsts(events.Electron[good_electrons]),
+                year=self._year,
                 mod=self._yearmod,
-                wp="wp80noiso" if self._channel == "ele" else "wp90noiso"
+                wp="wp80noiso" if self._channel == "ele" else "wp90noiso",
             )
             add_electronReco_weight(
-                weights=weights, 
-                electron=ak.firsts(events.Electron[good_electrons]), 
+                weights=weights,
+                electron=ak.firsts(events.Electron[good_electrons]),
                 year=self._year,
                 mod=self._yearmod,
             )
             add_electronTrigger_weight(
-                weights=weights, 
-                electron=ak.firsts(events.Electron[good_electrons]), 
-                year=self._year, 
+                weights=weights,
+                electron=ak.firsts(events.Electron[good_electrons]),
+                year=self._year,
                 mod=self._yearmod,
             )
             # muon weights
             add_muon_weight(
                 weights=weights,
-                muon=ak.firsts(events.Muon[good_muons]), 
-                sf_type="id", 
-                year=self._year, 
+                muon=ak.firsts(events.Muon[good_muons]),
+                sf_type="id",
+                year=self._year,
                 mod=self._yearmod,
-                wp="medium" if self._channel == "ele" else "tight"
+                wp="medium" if self._channel == "ele" else "tight",
             )
             add_muon_weight(
-                weights=weights, 
-                muon=ak.firsts(events.Muon[good_muons]), 
-                sf_type="iso", 
-                year=self._year, 
+                weights=weights,
+                muon=ak.firsts(events.Muon[good_muons]),
+                sf_type="iso",
+                year=self._year,
                 mod=self._yearmod,
-                wp="medium" if self._channel == "ele" else "tight"
+                wp="medium" if self._channel == "ele" else "tight",
             )
             add_muonTriggerIso_weight(
-                weights=weights, 
-                muon=ak.firsts(events.Muon[good_muons]), 
-                year=self._year, 
+                weights=weights,
+                muon=ak.firsts(events.Muon[good_muons]),
+                year=self._year,
                 mod=self._yearmod,
             )
-
         # selections
         self.selections = PackedSelection()
         self.selections.add("trigger_ele", trigger["ele"])
@@ -375,14 +369,13 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         self.selections.add("two_bjets", n_good_bjets >= 1)
         self.selections.add("one_electron", n_good_electrons == 1)
         self.selections.add("one_muon", n_good_muons == 1)
-        
-        
+
         # regions
         regions = {
             "ele": {
                 "numerator": [
-                    "trigger_ele", 
-                    "trigger_mu", 
+                    "trigger_ele",
+                    "trigger_mu",
                     "lumi",
                     "metfilters",
                     "two_bjets",
@@ -390,13 +383,12 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                     "one_electron",
                 ],
                 "denominator": [
-                    "trigger_mu", 
+                    "trigger_mu",
                     "lumi",
                     "metfilters",
                     "two_bjets",
                     "one_muon",
                     "one_electron",
-                    
                 ],
             },
             "mu": {
@@ -418,7 +410,6 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                     "two_bjets",
                     "one_electron",
                     "one_muon",
-                    
                 ],
             },
         }
@@ -426,7 +417,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         common_weights = ["genweight", "L1Prefiring", "pileup", "btagSF"]
         electron_weights = ["electronReco", "electronID"]
         muon_weights = ["muonIso", "muonId"]
-        
+
         numerator_weights = (
             common_weights
             + electron_weights
@@ -434,25 +425,26 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             + ["electronTrigger", "muonTriggerIso"]
         )
         denominator_weights = common_weights + electron_weights + muon_weights
-        
+
         weights_per_region = {
             "ele": {
                 "numerator": numerator_weights,
-                "denominator": denominator_weights + ["muonTriggerIso"]
+                "denominator": denominator_weights + ["muonTriggerIso"],
             },
             "mu": {
                 "numerator": numerator_weights,
                 "denominator": denominator_weights + ["electronTrigger"],
-            }
+            },
         }
+
         # filling histograms
         def fill(region: str):
             selections = regions[self._channel][region]
             cut = self.selections.all(*selections)
-            
+
             region_weights = weights_per_region[self._channel][region]
             region_weight = weights.partial_weight(region_weights)[cut]
-    
+
             self.output["jet_kin"].fill(
                 region=region,
                 jet_pt=normalize(candidatebjet.pt, cut),
@@ -506,7 +498,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 muon_total_transverse_mass=normalize(mu_total_transverse_mass, cut),
                 weight=region_weight,
             )
-            
+
             # cutflow
             cutflow_selections = []
             for selection in regions[self._channel][region]:
@@ -514,14 +506,14 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
                 cutflow_cut = self.selections.all(*cutflow_selections)
                 if self.isMC:
                     cutflow_weight = weights.partial_weight(region_weights)
-                    self.output["cutflow"][region][selection] = np.sum(cutflow_weight[cutflow_cut])
+                    self.output["cutflow"][region][selection] = np.sum(
+                        cutflow_weight[cutflow_cut]
+                    )
                 else:
                     self.output["cutflow"][region][selection] = np.sum(cutflow_cut)
-        
-        
+
         for region in regions[self._channel]:
             fill(region)
-        
         return {dataset: self.output}
 
     def postprocess(self, accumulator):

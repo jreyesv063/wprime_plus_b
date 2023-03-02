@@ -44,21 +44,18 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         self._dir_name = dir_name
 
         # open triggers
-        with open("/home/cms-jovyan/wprime_plus_b/data/triggers.json", "r") as f:
+        with open("wprime_plus_b/data/triggers.json", "r") as f:
             self._triggers = json.load(f)[self._year]
         # open btagDeepFlavB
-        with open("/home/cms-jovyan/wprime_plus_b/data/btagDeepFlavB.json", "r") as f:
+        with open("wprime_plus_b/data/btagDeepFlavB.json", "r") as f:
             self._btagDeepFlavB = json.load(f)[self._year]
         # open met filters
         # https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
-        with open(
-            "/home/cms-jovyan/wprime_plus_b/data/metfilters.json", "rb"
-        ) as handle:
+        with open("wprime_plus_b/data/metfilters.json", "rb") as handle:
             self._metfilters = json.load(handle)[self._year]
         # open lumi masks
-        with open("/home/cms-jovyan/wprime_plus_b/data/lumi_masks.pkl", "rb") as handle:
+        with open("wprime_plus_b/data/lumi_masks.pkl", "rb") as handle:
             self._lumi_mask = pickle.load(handle)
-            
         # output electron histograms
         if self._channel == "ele":
             self.make_output = lambda: {
@@ -70,7 +67,9 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                         name="jet_pt",
                         label=r"bJet $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
+                    hist2.axis.Regular(
+                        50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"
+                    ),
                     hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
                     hist2.storage.Weight(),
                 ),
@@ -116,8 +115,8 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 "electron_met_kin": hist2.Hist(
                     hist2.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
-                        name="electron_met_transverse_mass", 
-                        label=r"$m_T(e, p_T^{miss})$ [GeV]"
+                        name="electron_met_transverse_mass",
+                        label=r"$m_T(e, p_T^{miss})$ [GeV]",
                     ),
                     hist2.storage.Weight(),
                 ),
@@ -130,7 +129,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                     hist2.storage.Weight(),
                 ),
             }
-        
         # output muon histograms
         if self._channel == "mu":
             self.make_output = lambda: {
@@ -142,7 +140,9 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                         name="jet_pt",
                         label=r"bJet $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
+                    hist2.axis.Regular(
+                        50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"
+                    ),
                     hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
                     hist2.storage.Weight(),
                 ),
@@ -163,9 +163,15 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                         name="muon_pt",
                         label=r"muon $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(25, 0, 1, name="muon_relIso", label="muon RelIso"),
-                    hist2.axis.Regular(50, -2.4, 2.4, name="muon_eta", label="muon $\eta$"),
-                    hist2.axis.Regular(50, -4.0, 4.0, name="muon_phi", label="muon phi"),
+                    hist2.axis.Regular(
+                        25, 0, 1, name="muon_relIso", label="muon RelIso"
+                    ),
+                    hist2.axis.Regular(
+                        50, -2.4, 2.4, name="muon_eta", label="muon $\eta$"
+                    ),
+                    hist2.axis.Regular(
+                        50, -4.0, 4.0, name="muon_phi", label="muon phi"
+                    ),
                     hist2.storage.Weight(),
                 ),
                 "muon_bjet_kin": hist2.Hist(
@@ -182,8 +188,8 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 "muon_met_kin": hist2.Hist(
                     hist2.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
-                        name="muon_met_transverse_mass", 
-                        label=r"$m_T(\mu, p_T^{miss})$ [GeV]"
+                        name="muon_met_transverse_mass",
+                        label=r"$m_T(\mu, p_T^{miss})$ [GeV]",
                     ),
                     hist2.storage.Weight(),
                 ),
@@ -194,7 +200,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                         label=r"$m_T^{tot}(\mu, bJet, p_T^{miss})$ [GeV]",
                     ),
                     hist2.storage.Weight(),
-                )
+                ),
             }
 
     @property
@@ -246,11 +252,11 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             )
         )
         n_good_electrons = ak.sum(good_electrons, axis=1)
-        electrons = ak.firsts(events.Electron[
-            np.logical_and(good_electrons, n_good_electrons == 1)
-        ])
+        electrons = ak.firsts(
+            events.Electron[np.logical_and(good_electrons, n_good_electrons == 1)]
+        )
         electrons_p4 = build_p4(electrons)
-        
+
         ele_reliso = (
             electrons.pfRelIso04_all
             if hasattr(electrons, "pfRelIso04_all")
@@ -271,7 +277,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         n_good_muons = ak.sum(good_muons, axis=1)
         muons = ak.firsts(events.Muon[np.logical_and(good_muons, n_good_muons == 1)])
         muons_p4 = build_p4(muons)
-        
+
         mu_reliso = (
             muons.pfRelIso04_all
             if hasattr(muons, "pfRelIso04_all")
@@ -319,7 +325,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         mu_bjet_dr = candidatebjet.delta_r(muons_p4)
         mu_bjet_mass = (muons_p4 + candidatebjet).mass
 
-
         # lepton-MET transverse mass
         ele_met_tranverse_mass = np.sqrt(
             2.0
@@ -333,7 +338,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(muons_p4.delta_phi(met)))
         )
-        
+
         # lepton-bJet-MET total transverse mass
         ele_total_transverse_mass = np.sqrt(
             (electrons_p4.pt + candidatebjet.pt + met.pt) ** 2
@@ -499,7 +504,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 ),
                 weight=region_weight,
             )
-            
         if self._channel == "mu":
             self.output["muon_kin"].fill(
                 muon_pt=normalize(muons.pt, cut),
@@ -521,8 +525,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 muon_total_transverse_mass=normalize(mu_total_transverse_mass, cut),
                 weight=region_weight,
             )
-            
-            
         # cutflow
         cutflow_selections = []
         for selection in regions[self._channel]:
@@ -533,7 +535,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 self.output["cutflow"][selection] = np.sum(cutflow_weight[cutflow_cut])
             else:
                 self.output["cutflow"][selection] = np.sum(cutflow_cut)
-
         return {dataset: self.output}
 
     def postprocess(self, accumulator):

@@ -2,6 +2,7 @@ import json
 import correctionlib
 import numpy as np
 import awkward as ak
+import importlib.resources
 from typing import Type
 from coffea import util
 from coffea.analysis_tools import Weights
@@ -129,8 +130,9 @@ class BTagCorrector:
 
         # btag working points (only for deepJet)
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation
-        with open("/home/cms-jovyan/wprime_plus_b/data/btagWPs.json", "rb") as handle:
-            btagWPs = json.load(handle)
+        with importlib.resources.path("wprime_plus_b.data", "btagWPs.json") as path:
+            with open(path, "r") as handle:
+                btagWPs = json.load(handle)
         self._btagwp = btagWPs[tagger][year + mod][wp]
 
         # correction set
@@ -307,32 +309,29 @@ def add_electronTrigger_weight(
     year: str,
     mod: str = "",
 ):
-    trigger_corrections = {
-        "2016APV": "/home/cms-jovyan/wprime_plus_b/data/electron_trigger_2016preVFP_UL.json",
-        "2016": "/home/cms-jovyan/wprime_plus_b/data/electron_trigger_2016postVFP_UL.json",
-        "2017": "/home/cms-jovyan/wprime_plus_b/data/electron_trigger_2017_UL.json",
-        "2018": "/home/cms-jovyan/wprime_plus_b/data/electron_trigger_2018_UL.json",
-    }
-    # correction set
-    cset = correctionlib.CorrectionSet.from_file(trigger_corrections[year + mod])
+    with importlib.resources.path(
+        "wprime_plus_b.data", f"electron_trigger_{POG_YEARS[year + mod]}.json"
+    ) as filename:
+        # correction set
+        cset = correctionlib.CorrectionSet.from_file(str(filename))
 
-    # electron pt
-    electron_pt = np.array(ak.fill_none(electron.pt, 0.0))
-    electron_pt = np.clip(electron_pt, 10, 499.999)
+        # electron pt
+        electron_pt = np.array(ak.fill_none(electron.pt, 0.0))
+        electron_pt = np.clip(electron_pt, 10, 499.999)
 
-    # electron pseudorapidity
-    electron_eta = np.array(ak.fill_none(electron.eta, 0.0))
-    electron_eta = np.clip(electron_eta, -2.499, 2.499)
+        # electron pseudorapidity
+        electron_eta = np.array(ak.fill_none(electron.eta, 0.0))
+        electron_eta = np.clip(electron_eta, -2.499, 2.499)
 
-    # scale factors (only nominal)
-    values = {}
-    values["nominal"] = cset["UL-Electron-Trigger-SF"].evaluate(
-        electron_eta, electron_pt
-    )
-    weights.add(
-        name=f"electronTrigger",
-        weight=values["nominal"],
-    )
+        # scale factors (only nominal)
+        values = {}
+        values["nominal"] = cset["UL-Electron-Trigger-SF"].evaluate(
+            electron_eta, electron_pt
+        )
+        weights.add(
+            name=f"electronTrigger",
+            weight=values["nominal"],
+        )
 
 
 # Muon

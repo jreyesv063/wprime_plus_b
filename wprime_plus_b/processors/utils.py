@@ -103,7 +103,7 @@ def save_output(
     """
     creates output folders and save dfs to parquet files
     """
-    with open("/home/cms-jovyan/wprime_plus_b/data/simplified_samples.json", "r") as f:
+    with open("wprime_plus_b/data/simplified_samples.json", "r") as f:
         simplified_samples = json.load(f)
     sample = simplified_samples[year][dataset]
     partition_key = events.behavior["__events_factory__"]._partition_key.replace(
