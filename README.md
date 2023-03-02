@@ -327,7 +327,7 @@ jupyter notebook --no-browser --port 8800
 there should be a link looking like `http://localhost:8800/?token=...`, displayed in the output at this point, paste that into your browser.
 You should see a jupyter notebook with a directory listing.
 
-Open `filesetDAS.ipynb` and run it. The json files containing the datasets to be run should be saved in the same `data/fileset/` directory.
+Open `filesetDAS.ipynb` and run it. The json files containing the datasets to be run should be saved in the same `fileset/` directory.
 
 We use the recomended Run-2 UltraLegacy Datasets. See https://twiki.cern.ch/twiki/bin/view/CMS/PdmVRun2LegacyAnalysis
 
