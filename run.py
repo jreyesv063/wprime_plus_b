@@ -178,7 +178,7 @@ if __name__ == "__main__":
         dest="output_location",
         type=str,
         default="./outfiles/",
-        help="output location",
+        help="output location (default ./outfiles)",
     )
 
     args = parser.parse_args()
