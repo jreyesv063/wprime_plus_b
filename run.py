@@ -128,14 +128,14 @@ if __name__ == "__main__":
         dest="sample",
         type=str,
         default="TTTo2L2Nu",
-        help="sample to process",
+        help="sample to process (see data/simplified_samples.json values)",
     )
     parser.add_argument(
         "--workers",
         dest="workers",
         type=int,
         default=4,
-        help="number of workers (futures executor)",
+        help="number of workers for the futures executor (default 4)",
     )
     parser.add_argument(
         "--channel",
@@ -163,11 +163,15 @@ if __name__ == "__main__":
         dest="nfiles",
         type=int,
         default=1,
-        help="number of files per sample (all files: -1)",
+        help="number of files per sample (default 1. To run all files use -1)",
     )
     parser.add_argument("--year", dest="year", type=str, default="2017", help="year")
     parser.add_argument(
-        "--yearmod", dest="yearmod", type=str, default="", help="year modifier"
+        "--yearmod",
+        dest="yearmod",
+        type=str,
+        default="",
+        help="year modifier {'', 'APV'}",
     )
     parser.add_argument(
         "--output_location",
