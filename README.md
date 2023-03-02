@@ -3,7 +3,8 @@
 - [Processors](#Processors)
     * [Trigger Efficiency Processor](#Trigger-Efficiency-Processor)
     * [TTBar Control Region Processor](#TTBar-Control-Region-Processor)
-- [Submitting Condor jobs](#Submitting-Condor-jobs)
+- [How to run](#How-to-run)
+    * [Submitting Condor jobs](#Submitting-Condor-jobs)
 - [Scale factors](#Scale-factors)
 - [Setting up coffea environments](#Setting-up-coffea-environments)
 - [Data fileset](#Data-fileset)
@@ -21,6 +22,9 @@ Python package for analyzing W' + b in the electron and muon channels. The analy
 
 
 ## Processors
+
+The processor object is where all of the analysis is defined. Here we define two processors:
+
 ### [Trigger Efficiency Processor](processors/trigger_efficiency_processor.py) 
 
 Processor use to compute trigger efficiencies. 
@@ -108,18 +112,6 @@ The reference and main triggers, alongside the selection criteria applied to est
 | $N(e) = 1$                       |
 
 
-To test locally first (on [coffea-casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html)), can do e.g.:
-
-```bash
-python run.py --processor trigger --channel ele --sample TTTo2L2Nu --executor iterative --year 2017 --nfiles 1 
-```
-
-To see a description of all script parameters type:
-
-```bash
-python run.py --help
-```
-
 ### [TTBar Control Region Processor](processors/ttbar_processor.py) 
 
 Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
@@ -188,29 +180,68 @@ and additional selection cuts for each channel:
 | $N(\mu) = 1$                   |
 
 
-To test locally first (on [coffea-casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html)), can do e.g.:
 
-```bash
-python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor iterative --year 2017 --nfiles 1 
-```
-To see a description of all script parameters type:
+## How to run
+
+From within this repo, you can run the uproot job that will produce coffea output files. To see a list of arguments needed to run this program please enter the following in the terminal:
 
 ```bash
 python run.py --help
 ```
+The output should look something like this:
+
+```
+usage: run.py [-h] [--sample SAMPLE] [--workers WORKERS] [--channel CHANNEL] [--processor PROCESSOR] [--executor EXECUTOR] [--nfiles NFILES] [--year YEAR] [--yearmod YEARMOD]
+              [--output_location OUTPUT_LOCATION]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --sample SAMPLE       sample to process (see data/simplified_samples.json values)
+  --workers WORKERS     number of workers for the futures executor (default 4)
+  --channel CHANNEL     lepton channel {ele, mu}
+  --processor PROCESSOR
+                        processor to run {trigger, ttbar}
+  --executor EXECUTOR   executor {iterative, futures, dask}
+  --nfiles NFILES       number of files per sample (default 1. To run all files use -1)
+  --year YEAR           year
+  --yearmod YEARMOD     year modifier {'', 'APV'}
+  --output_location OUTPUT_LOCATION
+                        output location (default ./outfiles)
+```
+
+The `run.py` file executes the desired processor with user-selected options. By running this file, the analysis is performed and the results are stored in the `OUTPUT_LOCATION` directory, defined by the `--output_location` flag. 
+
+To run the desired processor, use the `--processor` flag and specify either `trigger` or `ttbar`. Select the electron (ele) or muon (mu) channel with the `--channel` flag. The dataset can be selected using `--sample`, followed by the name of the dataset you want to run. The available options can be found in `data/simplified_samples.json`.
+
+To select the number of `.root` files to load, use the `--nfiles` option. The year can be selected using the `--year` flag, and the `--yearmod` flag is used to specify whether the dataset uses APV or not.
+
+Three executors are available: `iterative`, `futures`, and `dask`. The `iterative` executor uses a single worker, while the `futures` executor uses the number of workers specified by the `--workers` flag. The `dask` executor uses Dask functionalities to scale up the analysis.
+
+Let's assume we are using [Coffea-Casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) and we want to perform the analysis for the 2017 run.
+
+To test locally first, can do e.g.:
+
+```bash
+python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor iterative --year 2017 --nfiles 1 
+```
+
+To scale up the analysis using Dask type:
+
+```bash
+python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor dask --year 2017 --nfiles -1 
+```
 
 #### Notes: 
 * Currently, the processors are only functional for the year 2017. 
-* [coffea-casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) is faster and more convenient, however still somewhat experimental so for large of inputs and/or processors which may require heavier cpu/memory Condor is recommended (see next section).
+* Coffea-Casa is faster and more convenient, however still somewhat experimental so for large of inputs and/or processors which may require heavier cpu/memory Condor is recommended (see next section).
 
-
-## Submitting Condor jobs
+### Submitting Condor jobs
 
 To do
 
+
 ## Scale factors
 
-    
 We use the common json format for scale factors (SF), hence the requirement to install [correctionlib](https://github.com/cms-nanoAOD/correctionlib). The SF themselves can be found in the central [POG repository](https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration), synced once a day with CVMFS: `/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration`. A summary of their content can be found [here](https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/). The SF implemented are (See [corrections](processors/corrections.py)):
 
 * Pileup
