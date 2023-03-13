@@ -319,27 +319,27 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             # electron weights
             add_electronID_weight(
                 weights=weights,
-                electron=ak.firsts(events.Electron[good_electrons]),
+                electron=electrons,
                 year=self._year,
                 mod=self._yearmod,
                 wp="wp80noiso" if self._channel == "ele" else "wp90noiso",
             )
             add_electronReco_weight(
                 weights=weights,
-                electron=ak.firsts(events.Electron[good_electrons]),
+                electron=electrons,
                 year=self._year,
                 mod=self._yearmod,
             )
             add_electronTrigger_weight(
                 weights=weights,
-                electron=ak.firsts(events.Electron[good_electrons]),
+                electron=electrons,
                 year=self._year,
                 mod=self._yearmod,
             )
             # muon weights
             add_muon_weight(
                 weights=weights,
-                muon=ak.firsts(events.Muon[good_muons]),
+                muon=muons,
                 sf_type="id",
                 year=self._year,
                 mod=self._yearmod,
@@ -347,7 +347,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
             add_muon_weight(
                 weights=weights,
-                muon=ak.firsts(events.Muon[good_muons]),
+                muon=muons,
                 sf_type="iso",
                 year=self._year,
                 mod=self._yearmod,
@@ -355,7 +355,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
             add_muonTriggerIso_weight(
                 weights=weights,
-                muon=ak.firsts(events.Muon[good_muons]),
+                muon=muons,
                 year=self._year,
                 mod=self._yearmod,
             )
