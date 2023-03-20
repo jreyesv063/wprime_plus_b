@@ -40,12 +40,19 @@ def main(args):
         except OSError:
             print("Failed to upload the directory")
         executor_args.update({"client": client})
+        
     # load fileset
-    with open(f"wprime_plus_b/fileset/fileset_{args.year}_UL_NANO.json", "r") as handle:
-        data = json.load(handle)
-    with open("wprime_plus_b/data/simplified_samples.json", "r") as handle:
-        simplified_samples = json.load(handle)[args.year]
-        simplified_samples_r = {v: k for k, v in simplified_samples.items()}
+    with importlib.resources.path(
+        "wprime_plus_b.fileset", f"fileset_{args.year}_UL_NANO.json"
+    ) as path:
+        with open(path, "r") as handle:
+            data = json.load(handle)
+    with importlib.resources.path(
+        "wprime_plus_b.data", "simplified_samples.json"
+    ) as path:
+        with open(path, "r") as handle:
+            simplified_samples = json.load(handle)[args.year]
+            simplified_samples_r = {v: k for k, v in simplified_samples.items()}
     for key, val in data.items():
         if simplified_samples_r[args.sample] in key:
             sample = simplified_samples[key]
@@ -68,6 +75,10 @@ def main(args):
         )
 
         proc = TriggerEfficiencyProcessor
+    if args.processor == "signal":
+        from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
+
+        proc = SignalRegionProcessor
     # run processor
     out = processor.run_uproot_job(
         fileset,
