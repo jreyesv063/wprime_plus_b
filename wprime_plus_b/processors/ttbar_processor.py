@@ -265,7 +265,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
 
         # muons
         good_muons = (
-            (events.Muon.pt >= 30)
+            (events.Muon.pt >= 35)
             & (np.abs(events.Muon.eta) < 2.4)
             & (events.Muon.tightId)
             & (
