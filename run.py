@@ -79,6 +79,10 @@ def main(args):
         from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
 
         proc = SignalRegionProcessor
+    if args.processor == "candle":
+        from wprime_plus_b.processors.candle import CandleProcessor
+        
+        proc = CandleProcessor
     # run processor
     out = processor.run_uproot_job(
         fileset,
