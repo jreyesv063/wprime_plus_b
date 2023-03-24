@@ -40,11 +40,14 @@ def main(args):
         except OSError:
             print("Failed to upload the directory")
         executor_args.update({"client": client})
-        
+
     # load fileset
-    with importlib.resources.path(
-        "wprime_plus_b.fileset", f"fileset_{args.year}_UL_NANO.json"
-    ) as path:
+    fname = (
+        f"{args.sample}.json"
+        if args.processor == "candle"
+        else f"fileset_{args.year}_UL_NANO.json"
+    )
+    with importlib.resources.path("wprime_plus_b.fileset", fname) as path:
         with open(path, "r") as handle:
             data = json.load(handle)
     with importlib.resources.path(
@@ -54,16 +57,22 @@ def main(args):
             simplified_samples = json.load(handle)[args.year]
             simplified_samples_r = {v: k for k, v in simplified_samples.items()}
     for key, val in data.items():
-        if simplified_samples_r[args.sample] in key:
+        if (
+            args.sample in simplified_samples_r
+            and simplified_samples_r[args.sample] in key
+        ):
             sample = simplified_samples[key]
-            fileset = {sample: val}
-            if val is not None:
-                if args.nfiles == -1:
-                    fileset[sample] = ["root://xcache/" + file for file in val]
-                else:
-                    fileset[sample] = [
-                        "root://xcache/" + file for file in val[: args.nfiles]
-                    ]
+        else:
+            sample = args.sample
+        fileset = {sample: val}
+        if val is not None:
+            if args.nfiles == -1:
+                fileset[sample] = ["root://xcache/" + file for file in val]
+            else:
+                fileset[sample] = [
+                    "root://xcache/" + file for file in val[: args.nfiles]
+                ]
+
     # define processor
     if args.processor == "ttbar":
         from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
@@ -81,7 +90,7 @@ def main(args):
         proc = SignalRegionProcessor
     if args.processor == "candle":
         from wprime_plus_b.processors.candle import CandleProcessor
-        
+
         proc = CandleProcessor
     # run processor
     out = processor.run_uproot_job(
