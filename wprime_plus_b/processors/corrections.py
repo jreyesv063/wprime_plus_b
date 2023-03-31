@@ -6,7 +6,7 @@ import importlib.resources
 from typing import Type
 from coffea import util
 from coffea.analysis_tools import Weights
-
+from .utils import prod_unflatten
 
 # CorrectionLib files are available from
 POG_CORRECTION_PATH = "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration"
@@ -190,7 +190,7 @@ class BTagCorrector:
 #
 def add_electronID_weight(
     weights: Type[Weights],
-    electron: ak.Array,
+    electrons: ak.Array,
     year: str,
     mod: str = "",
     wp: str = "wp80noiso",
@@ -215,11 +215,14 @@ def add_electronID_weight(
     cset = correctionlib.CorrectionSet.from_file(
         get_pog_json(json_name="electron", year=year + mod)
     )
+    # number of objects per event
+    n = ak.num(electrons)
+
     # electron pseudorapidity range: (-inf, inf)
-    electron_eta = np.array(ak.fill_none(electron.eta, 0.0))
+    electron_eta = ak.flatten(electrons.eta)
 
     # electron pt range: [10, inf)
-    electron_pt = np.array(ak.fill_none(electron.pt, 0.0))
+    electron_pt = ak.flatten(electrons.pt)
     electron_pt = np.clip(
         electron_pt, 10.0, 499.999
     )  # potential problems with pt > 500 GeV
@@ -239,6 +242,10 @@ def add_electronID_weight(
         year, "sfdown", wp, electron_eta, electron_pt
     )
 
+    # unflatten
+    for key in values:
+        values[key] = prod_unflatten(values[key], n)
+
     weights.add(
         name=f"electronID",
         weight=values["nominal"],
@@ -249,7 +256,7 @@ def add_electronID_weight(
 
 def add_electronReco_weight(
     weights: Type[Weights],
-    electron: ak.Array,
+    electrons: ak.Array,
     year: str,
     mod: str = "",
 ):
@@ -271,11 +278,14 @@ def add_electronReco_weight(
     cset = correctionlib.CorrectionSet.from_file(
         get_pog_json(json_name="electron", year=year + mod)
     )
+    # number of objects per event
+    n = ak.num(electrons)
+
     # electron pseudorapidity range: (-inf, inf)
-    electron_eta = np.array(ak.fill_none(electron.eta, 0.0))
+    electron_eta = ak.flatten(electrons.eta)
 
     # electron pt range: (20, inf)
-    electron_pt = np.array(ak.fill_none(electron.pt, 0.0))
+    electron_pt = ak.flatten(electrons.pt)
     electron_pt = np.clip(
         electron_pt, 20.1, 499.999
     )  # potential problems with pt > 500 GeV
@@ -295,6 +305,10 @@ def add_electronReco_weight(
         year, "sfdown", "RecoAbove20", electron_eta, electron_pt
     )
 
+    # unflatten
+    for key in values:
+        values[key] = prod_unflatten(values[key], n)
+
     weights.add(
         name=f"electronReco",
         weight=values["nominal"],
@@ -305,7 +319,7 @@ def add_electronReco_weight(
 
 def add_electronTrigger_weight(
     weights: Type[Weights],
-    electron: ak.Array,
+    electrons: ak.Array,
     year: str,
     mod: str = "",
 ):
@@ -315,12 +329,15 @@ def add_electronTrigger_weight(
         # correction set
         cset = correctionlib.CorrectionSet.from_file(str(filename))
 
+        # number of objects per event
+        n = ak.num(electrons)
+
         # electron pt
-        electron_pt = np.array(ak.fill_none(electron.pt, 0.0))
+        electron_pt = ak.flatten(electrons.pt)
         electron_pt = np.clip(electron_pt, 10, 499.999)
 
         # electron pseudorapidity
-        electron_eta = np.array(ak.fill_none(electron.eta, 0.0))
+        electron_eta = ak.flatten(electrons.eta)
         electron_eta = np.clip(electron_eta, -2.499, 2.499)
 
         # scale factors (only nominal)
@@ -328,6 +345,11 @@ def add_electronTrigger_weight(
         values["nominal"] = cset["UL-Electron-Trigger-SF"].evaluate(
             electron_eta, electron_pt
         )
+
+        # unflatten
+        for key in values:
+            values[key] = prod_unflatten(values[key], n)
+
         weights.add(
             name=f"electronTrigger",
             weight=values["nominal"],
@@ -349,7 +371,7 @@ def add_electronTrigger_weight(
 #
 def add_muon_weight(
     weights: Type[Weights],
-    muon: ak.Array,
+    muons: ak.Array,
     sf_type: str,
     year: str,
     mod: str = "",
@@ -377,12 +399,15 @@ def add_muon_weight(
     cset = correctionlib.CorrectionSet.from_file(
         get_pog_json(json_name="muon", year=year + mod)
     )
+    # number of objects per event
+    n = ak.num(muons)
+
     # muon absolute pseudorapidity range: [0, 2.4)
-    muon_eta = np.abs(np.array(ak.fill_none(muon.eta, 0.0)))
+    muon_eta = np.abs(ak.flatten(muons.eta))
     muon_eta = np.clip(muon_eta, 0.0, 2.399)
 
     # muon pt range: [15, 120)
-    muon_pt = np.array(ak.fill_none(muon.pt, 0.0))
+    muon_pt = ak.flatten(muons.pt)
     muon_pt = np.clip(muon_pt, 15.0, 119.999)
 
     # scale factors
@@ -394,7 +419,6 @@ def add_muon_weight(
         if wp == "tight"
         else "NUM_LooseRelIso_DEN_MediumID",
     }
-
     values = {}
     values["nominal"] = cset[sfs_keys[sf_type]].evaluate(
         POG_YEARS[year + mod], muon_eta, muon_pt, "sf"
@@ -405,6 +429,11 @@ def add_muon_weight(
     values["down"] = cset[sfs_keys[sf_type]].evaluate(
         POG_YEARS[year + mod], muon_eta, muon_pt, "systdown"
     )
+
+    # unflatten
+    for key in values:
+        values[key] = prod_unflatten(values[key], n)
+
     weights.add(
         name=f"muon{sf_type.capitalize()}",
         weight=values["nominal"],
@@ -415,7 +444,7 @@ def add_muon_weight(
 
 def add_muonTriggerIso_weight(
     weights: Type[Weights],
-    muon: ak.Array,
+    muons: ak.Array,
     year: str,
     mod: str = "",
 ):
@@ -437,12 +466,16 @@ def add_muonTriggerIso_weight(
     cset = correctionlib.CorrectionSet.from_file(
         get_pog_json(json_name="muon", year=year + mod)
     )
+
+    # number of objects per event
+    n = ak.num(muons)
+
     # muon absolute pseudorapidity range: [0, 2.4)
-    muon_eta = np.abs(np.array(ak.fill_none(muon.eta, 0.0)))
+    muon_eta = np.abs(ak.flatten(muons.eta))
     muon_eta = np.clip(muon_eta, 0.0, 2.399)
 
     # muon pt range: [29, 200)
-    muon_pt = np.array(ak.fill_none(muon.pt, 0.0))
+    muon_pt = ak.flatten(muons.pt)
     muon_pt = np.clip(muon_pt, 29.0, 199.999)
 
     # scale factors
@@ -451,7 +484,6 @@ def add_muonTriggerIso_weight(
         "2017": "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight",
         "2018": "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight",
     }
-
     values = {}
     values["nominal"] = cset[sfs_keys[year]].evaluate(
         POG_YEARS[year + mod], muon_eta, muon_pt, "sf"
@@ -462,6 +494,11 @@ def add_muonTriggerIso_weight(
     values["down"] = cset[sfs_keys[year]].evaluate(
         POG_YEARS[year + mod], muon_eta, muon_pt, "systdown"
     )
+
+    # unflatten
+    for key in values:
+        values[key] = prod_unflatten(values[key], n)
+
     weights.add(
         name="muonTriggerIso",
         weight=values["nominal"],
