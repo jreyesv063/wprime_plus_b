@@ -21,6 +21,8 @@ def normalize(var: ak.Array, cut: ak.Array = None) -> ak.Array:
     cut:
         mask array to filter variable array
     """
+    if var.ndim == 2:
+        var = ak.firsts(var)
     if cut is None:
         ar = ak.to_numpy(ak.fill_none(var, np.nan))
         return ar
