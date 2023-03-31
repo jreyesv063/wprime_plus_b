@@ -13,7 +13,7 @@ from coffea import util
 from coffea import processor
 from coffea.nanoevents.methods import candidate, vector
 from coffea.analysis_tools import Weights, PackedSelection
-from .utils import normalize, pad_val, build_p4
+from .utils import normalize, build_p4
 from .corrections import (
     add_pileup_weight,
     add_electronID_weight,
@@ -105,12 +105,10 @@ class CandleProcessor(processor.ProcessorABC):
             & events.Electron.mvaFall17V2Iso_WP80
         )
         n_good_electrons = ak.sum(good_electrons, axis=1)
-        electrons = events.Electron[
-            np.logical_and(good_electrons, n_good_electrons == 2)
-        ]
+        electrons = events.Electron[good_electrons]
+
         leading_electron = build_p4(ak.pad_none(electrons, 2)[:, 0])
         subleading_electron = build_p4(ak.pad_none(electrons, 2)[:, 1])
-
         # muons
         good_muons = (
             (events.Muon.pt >= 35)
@@ -123,7 +121,8 @@ class CandleProcessor(processor.ProcessorABC):
             & (events.Muon.mediumId)
         )
         n_good_muons = ak.sum(good_muons, axis=1)
-        muons = events.Muon[np.logical_and(good_muons, n_good_muons == 2)]
+        muons = events.Muon[good_muons]
+
         leading_muon = build_p4(ak.pad_none(muons, 2)[:, 0])
         subleading_muon = build_p4(ak.pad_none(muons, 2)[:, 1])
 
@@ -132,7 +131,6 @@ class CandleProcessor(processor.ProcessorABC):
             "ele": (leading_electron + subleading_electron).mass,
             "mu": (leading_muon + subleading_muon).mass,
         }
-
         # weights
         self.weights = Weights(nevents, storeIndividual=True)
         if self.isMC:
@@ -158,20 +156,20 @@ class CandleProcessor(processor.ProcessorABC):
             if self._channel == "ele":
                 add_electronID_weight(
                     weights=self.weights,
-                    electron=leading_electron,
+                    electrons=electrons,
                     year=self._year,
                     mod=self._yearmod,
                     wp="wp80noiso" if self._channel == "ele" else "wp90noiso",
                 )
                 add_electronReco_weight(
                     weights=self.weights,
-                    electron=leading_electron,
+                    electrons=electrons,
                     year=self._year,
                     mod=self._yearmod,
                 )
                 add_electronTrigger_weight(
                     weights=self.weights,
-                    electron=leading_electron,
+                    electrons=electrons,
                     year=self._year,
                     mod=self._yearmod,
                 )
@@ -179,7 +177,7 @@ class CandleProcessor(processor.ProcessorABC):
             if self._channel == "mu":
                 add_muon_weight(
                     weights=self.weights,
-                    muon=leading_muon,
+                    muons=muons,
                     sf_type="id",
                     year=self._year,
                     mod=self._yearmod,
@@ -187,7 +185,7 @@ class CandleProcessor(processor.ProcessorABC):
                 )
                 add_muon_weight(
                     weights=self.weights,
-                    muon=leading_muon,
+                    muons=muons,
                     sf_type="iso",
                     year=self._year,
                     mod=self._yearmod,
@@ -195,7 +193,7 @@ class CandleProcessor(processor.ProcessorABC):
                 )
                 add_muonTriggerIso_weight(
                     weights=self.weights,
-                    muon=leading_muon,
+                    muons=muons,
                     year=self._year,
                     mod=self._yearmod,
                 )

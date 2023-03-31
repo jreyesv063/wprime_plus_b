@@ -15,7 +15,7 @@ from coffea import util
 from coffea import processor
 from coffea.nanoevents.methods import candidate, vector
 from coffea.analysis_tools import Weights, PackedSelection
-from .utils import normalize, pad_val, build_p4
+from .utils import normalize
 from .corrections import (
     BTagCorrector,
     add_pileup_weight,
@@ -252,17 +252,13 @@ class SignalRegionProcessor(processor.ProcessorABC):
             )
         )
         n_good_electrons = ak.sum(good_electrons, axis=1)
-        electrons = ak.firsts(
-            events.Electron[np.logical_and(good_electrons, n_good_electrons == 1)]
-        )
-        electrons_p4 = build_p4(electrons)
+        electrons = events.Electron[good_electrons]
 
         ele_reliso = (
             electrons.pfRelIso04_all
             if hasattr(electrons, "pfRelIso04_all")
             else electrons.pfRelIso03_all
         )
-
         # muons
         good_muons = (
             (events.Muon.pt >= 35)
@@ -275,15 +271,13 @@ class SignalRegionProcessor(processor.ProcessorABC):
             )
         )
         n_good_muons = ak.sum(good_muons, axis=1)
-        muons = ak.firsts(events.Muon[np.logical_and(good_muons, n_good_muons == 1)])
-        muons_p4 = build_p4(muons)
+        muons = events.Muon[good_muons]
 
         mu_reliso = (
             muons.pfRelIso04_all
             if hasattr(muons, "pfRelIso04_all")
             else muons.pfRelIso03_all
         )
-
         # Tau
         good_taus = (
             (events.Tau.idDeepTau2017v2p1VSjet > 8)
@@ -294,8 +288,7 @@ class SignalRegionProcessor(processor.ProcessorABC):
             & (events.Tau.dz < 0.2)
         )
         n_good_taus = ak.sum(good_taus, axis=1)
-        taus = ak.firsts(events.Tau[np.logical_and(good_taus, n_good_taus == 1)])
-        taus_p4 = build_p4(taus)
+        taus = events.Tau[good_taus]
 
         # b-jets
         good_bjets = (
@@ -309,7 +302,6 @@ class SignalRegionProcessor(processor.ProcessorABC):
         candidatebjet = ak.firsts(
             events.Jet[np.logical_and(good_bjets, n_good_bjets == 1)]
         )
-
         # missing energy
         met = events.MET
         met["pt"], met["phi"] = get_met_corrections(
@@ -322,35 +314,33 @@ class SignalRegionProcessor(processor.ProcessorABC):
         )
 
         # lepton-bjet delta R and invariant mass
-        ele_bjet_dr = candidatebjet.delta_r(electrons_p4)
-        ele_bjet_mass = (electrons_p4 + candidatebjet).mass
-        mu_bjet_dr = candidatebjet.delta_r(muons_p4)
-        mu_bjet_mass = (muons_p4 + candidatebjet).mass
+        ele_bjet_dr = candidatebjet.delta_r(electrons)
+        ele_bjet_mass = (electrons + candidatebjet).mass
+        mu_bjet_dr = candidatebjet.delta_r(muons)
+        mu_bjet_mass = (muons + candidatebjet).mass
 
         # lepton-MET transverse mass
         ele_met_tranverse_mass = np.sqrt(
             2.0
-            * electrons_p4.pt
+            * electrons.pt
             * met.pt
-            * (ak.ones_like(met.pt) - np.cos(electrons_p4.delta_phi(met)))
+            * (ak.ones_like(met.pt) - np.cos(electrons.delta_phi(met)))
         )
         mu_met_transverse_mass = np.sqrt(
             2.0
-            * muons_p4.pt
+            * muons.pt
             * met.pt
-            * (ak.ones_like(met.pt) - np.cos(muons_p4.delta_phi(met)))
+            * (ak.ones_like(met.pt) - np.cos(muons.delta_phi(met)))
         )
-
         # lepton-bJet-MET total transverse mass
         ele_total_transverse_mass = np.sqrt(
-            (electrons_p4.pt + candidatebjet.pt + met.pt) ** 2
-            - (electrons_p4 + candidatebjet + met).pt ** 2
+            (electrons.pt + candidatebjet.pt + met.pt) ** 2
+            - (electrons + candidatebjet + met).pt ** 2
         )
         mu_total_transverse_mass = np.sqrt(
-            (muons_p4.pt + candidatebjet.pt + met.pt) ** 2
-            - (muons_p4 + candidatebjet + met).pt ** 2
+            (muons.pt + candidatebjet.pt + met.pt) ** 2
+            - (muons + candidatebjet + met).pt ** 2
         )
-
         # weights
         self.weights = Weights(nevents, storeIndividual=True)
         if self.isMC:
@@ -383,28 +373,28 @@ class SignalRegionProcessor(processor.ProcessorABC):
             # electron weights
             add_electronID_weight(
                 weights=self.weights,
-                electron=electrons,
+                electrons=electrons,
                 year=self._year,
                 mod=self._yearmod,
                 wp="wp80noiso" if self._channel == "ele" else "wp90noiso",
             )
             add_electronReco_weight(
                 weights=self.weights,
-                electron=electrons,
+                electrons=electrons,
                 year=self._year,
                 mod=self._yearmod,
             )
             if self._channel == "ele":
                 add_electronTrigger_weight(
                     weights=self.weights,
-                    electron=electrons,
+                    electrons=electrons,
                     year=self._year,
                     mod=self._yearmod,
                 )
             # muon weights
             add_muon_weight(
                 weights=self.weights,
-                muon=muons,
+                muons=muons,
                 sf_type="id",
                 year=self._year,
                 mod=self._yearmod,
@@ -412,7 +402,7 @@ class SignalRegionProcessor(processor.ProcessorABC):
             )
             add_muon_weight(
                 weights=self.weights,
-                muon=muons,
+                muons=muons,
                 sf_type="iso",
                 year=self._year,
                 mod=self._yearmod,
@@ -421,7 +411,7 @@ class SignalRegionProcessor(processor.ProcessorABC):
             if self._channel == "mu":
                 add_muonTriggerIso_weight(
                     weights=self.weights,
-                    muon=muons,
+                    muons=muons,
                     year=self._year,
                     mod=self._yearmod,
                 )
@@ -437,7 +427,7 @@ class SignalRegionProcessor(processor.ProcessorABC):
             self.selections.add("trigger_mu", trigger["mu"])
             self.selections.add("good_electron", n_good_electrons == 0)
             self.selections.add("good_muon", n_good_muons == 1)
-        self.selections.add("deltaR", mu_bjet_dr > 0.4)
+        self.selections.add("deltaR", ak.any(mu_bjet_dr > 0.4, axis=1))
         self.selections.add("good_tau", n_good_taus == 0)
         self.selections.add("met_pt", met.pt > 50)
         self.selections.add("one_bjet", n_good_bjets == 1)

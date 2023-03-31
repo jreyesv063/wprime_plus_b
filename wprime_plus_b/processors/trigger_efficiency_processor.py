@@ -7,7 +7,7 @@ import hist as hist2
 from typing import List
 from coffea import processor
 from coffea.analysis_tools import Weights, PackedSelection
-from .utils import normalize, pad_val, build_p4
+from .utils import normalize
 from .corrections import (
     BTagCorrector,
     add_pileup_weight,
@@ -206,17 +206,13 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
         )
         n_good_electrons = ak.sum(good_electrons, axis=1)
-        electrons = ak.firsts(
-            events.Electron[np.logical_and(good_electrons, n_good_electrons == 1)]
-        )
-        electrons_p4 = build_p4(electrons)
+        electrons = events.Electron[good_electrons]
 
         ele_reliso = (
             electrons.pfRelIso04_all
             if hasattr(electrons, "pfRelIso04_all")
             else electrons.pfRelIso03_all
         )
-
         # muons
         good_muons = (
             (events.Muon.pt >= 30)
@@ -229,8 +225,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
         )
         n_good_muons = ak.sum(good_muons, axis=1)
-        muons = ak.firsts(events.Muon[np.logical_and(good_muons, n_good_muons == 1)])
-        muons_p4 = build_p4(muons)
+        muons = events.Muon[good_muons]
 
         mu_reliso = (
             muons.pfRelIso04_all
@@ -258,37 +253,35 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             npvs=events.PV.npvs,
             mod=self._yearmod,
         )
-
         # lepton-bjet delta R and invariant mass
-        ele_bjet_dr = candidatebjet.delta_r(electrons_p4)
-        ele_bjet_mass = (electrons_p4 + candidatebjet).mass
-        mu_bjet_dr = candidatebjet.delta_r(muons_p4)
-        mu_bjet_mass = (muons_p4 + candidatebjet).mass
+        ele_bjet_dr = candidatebjet.delta_r(electrons)
+        ele_bjet_mass = (electrons + candidatebjet).mass
+        mu_bjet_dr = candidatebjet.delta_r(muons)
+        mu_bjet_mass = (muons + candidatebjet).mass
 
         # lepton-MET transverse mass
         ele_met_tranverse_mass = np.sqrt(
             2.0
-            * electrons_p4.pt
+            * electrons.pt
             * met.pt
-            * (ak.ones_like(met.pt) - np.cos(electrons_p4.delta_phi(met)))
+            * (ak.ones_like(met.pt) - np.cos(electrons.delta_phi(met)))
         )
         mu_met_transverse_mass = np.sqrt(
             2.0
-            * muons_p4.pt
+            * muons.pt
             * met.pt
-            * (ak.ones_like(met.pt) - np.cos(muons_p4.delta_phi(met)))
+            * (ak.ones_like(met.pt) - np.cos(muons.delta_phi(met)))
         )
 
         # lepton-bJet-MET total transverse mass
         ele_total_transverse_mass = np.sqrt(
-            (electrons_p4.pt + candidatebjet.pt + met.pt) ** 2
-            - (electrons_p4 + candidatebjet + met).pt ** 2
+            (electrons.pt + candidatebjet.pt + met.pt) ** 2
+            - (electrons + candidatebjet + met).pt ** 2
         )
         mu_total_transverse_mass = np.sqrt(
-            (muons_p4.pt + candidatebjet.pt + met.pt) ** 2
-            - (muons_p4 + candidatebjet + met).pt ** 2
+            (muons.pt + candidatebjet.pt + met.pt) ** 2
+            - (muons + candidatebjet + met).pt ** 2
         )
-
         # weights
         weights = Weights(nevents, storeIndividual=True)
         if self.isMC:
@@ -319,27 +312,27 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             # electron weights
             add_electronID_weight(
                 weights=weights,
-                electron=electrons,
+                electrons=electrons,
                 year=self._year,
                 mod=self._yearmod,
                 wp="wp80noiso" if self._channel == "ele" else "wp90noiso",
             )
             add_electronReco_weight(
                 weights=weights,
-                electron=electrons,
+                electrons=electrons,
                 year=self._year,
                 mod=self._yearmod,
             )
             add_electronTrigger_weight(
                 weights=weights,
-                electron=electrons,
+                electrons=electrons,
                 year=self._year,
                 mod=self._yearmod,
             )
             # muon weights
             add_muon_weight(
                 weights=weights,
-                muon=muons,
+                muons=muons,
                 sf_type="id",
                 year=self._year,
                 mod=self._yearmod,
@@ -347,7 +340,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
             add_muon_weight(
                 weights=weights,
-                muon=muons,
+                muons=muons,
                 sf_type="iso",
                 year=self._year,
                 mod=self._yearmod,
@@ -355,7 +348,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
             )
             add_muonTriggerIso_weight(
                 weights=weights,
-                muon=muons,
+                muons=muons,
                 year=self._year,
                 mod=self._yearmod,
             )
@@ -365,7 +358,7 @@ class TriggerEfficiencyProcessor(processor.ProcessorABC):
         self.selections.add("trigger_mu", trigger["mu"])
         self.selections.add("lumi", lumi_mask)
         self.selections.add("metfilters", metfilters)
-        self.selections.add("deltaR", mu_bjet_dr > 0.4)
+        self.selections.add("deltaR", ak.any(mu_bjet_dr > 0.4, axis=1))
         self.selections.add("two_bjets", n_good_bjets >= 1)
         self.selections.add("one_electron", n_good_electrons == 1)
         self.selections.add("one_muon", n_good_muons == 1)
