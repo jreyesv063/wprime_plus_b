@@ -157,3 +157,15 @@ def save_output(
         + partition_key
     )
     save_dfs_parquet(fname, output)
+
+
+def prod_unflatten(array: ak.Array, n: ak.Array):
+    """
+    Unflattens an array and takes the product through the axis 1
+
+    Parameters:
+    -----------
+        array: array to unflat
+        n: array with the number of objects per event. Used to perform the unflatten operation
+    """
+    return ak.prod(ak.unflatten(array, n), axis=1)
