@@ -139,9 +139,11 @@ class BTagCorrector:
         self._cset = correctionlib.CorrectionSet.from_file(
             get_pog_json(json_name="btag", year=year + mod)
         )
-
+        
+        # load efficiency lookup table 
+        # efflookup(pt, |eta|, flavor)
         with importlib.resources.path(
-            "wprime_plus_b.data", f"btageff_{tagger}_{wp}_{year}.coffea"
+            "wprime_plus_b.data", f"btag_eff_{tagger}_{wp}_{year}.coffea"
         ) as filename:
             self.efflookup = util.load(str(filename))
 
@@ -197,9 +199,9 @@ class BTagCorrector:
         light_jets = events.Jet[phasespace_cuts & (events.Jet.hadronFlavour == 0)]
 
         # efficiencies
-        bc_eff = self.efflookup(bc_jets.hadronFlavour, bc_jets.pt, abs(bc_jets.eta))
+        bc_eff = self.efflookup(bc_jets.pt, abs(bc_jets.eta), bc_jets.hadronFlavour)
         light_eff = self.efflookup(
-            light_jets.hadronFlavour, light_jets.pt, abs(light_jets.eta)
+            light_jets.pt, abs(light_jets.eta), light_jets.hadronFlavour
         )
 
         # scale factors
