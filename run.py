@@ -28,9 +28,7 @@ def main(args):
         from dask.distributed import Client
         from distributed.diagnostics.plugin import UploadDirectory
 
-        client = Client(
-            "tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
-        )
+        client = Client(args.client)
         try:
             client.register_worker_plugin(
                 UploadDirectory(f"{loc_base}", restart=True, update_path=True),
@@ -199,6 +197,13 @@ if __name__ == "__main__":
         type=int,
         default=4,
         help="number of workers to use with futures executor (default 4)",
+    )
+    parser.add_argument(
+        "--client",
+        dest="client",
+        type=str,
+        default="tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786",
+        help="dask client to use with dask executor",
     )
     parser.add_argument(
         "--yearmod",
