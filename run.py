@@ -91,18 +91,25 @@ def main(args):
         from wprime_plus_b.processors.candle_processor import CandleProcessor
 
         proc = CandleProcessor
+    if args.processor == "btag_eff":
+        from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
         
+        proc = BTagEfficiencyProcessor
+        
+    # processor args
+    processor_kwargs = {
+        "year": args.year,
+        "yearmod": args.yearmod,
+        "channel": args.channel,
+    }
+    if args.processor == "btag_eff": 
+        del processor_kwargs["channel"]
+    
     # run processor
     out = processor.run_uproot_job(
         fileset,
         treename="Events",
-        processor_instance=proc(
-            year=args.year,
-            yearmod=args.yearmod,
-            channel=args.channel,
-            output_location=args.output_location,
-            dir_name=args.processor,
-        ),
+        processor_instance=proc(**processor_kwargs),
         executor=executors[args.executor],
         executor_args=executor_args,
     )
@@ -152,7 +159,7 @@ if __name__ == "__main__":
         dest="processor",
         type=str,
         default="ttbar",
-        help="processor to run {trigger, ttbar, candle, signal}",
+        help="processor to run {trigger, ttbar, signal, candle, btag_eff}",
     )
     parser.add_argument(
         "--executor",
