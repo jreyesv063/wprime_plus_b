@@ -27,5 +27,15 @@
     "WJetsToLNu_HT-800To1200": 5.366,
     "WW": 75.95,
     "WZ": 27.59,
+    "ZToMuMu_M-120To200": 20.58,
+    "ZToMuMu_M-1400To2300": 0.00137,
+    "ZToMuMu_M-200To400": 2.89,
+    "ZToMuMu_M-2300To3500": 8.282e-05,
+    "ZToMuMu_M-3500To4500": 3.414e-06,
+    "ZToMuMu_M-400To800": 0.2515,
+    "ZToMuMu_M-4500To6000": 3.65e-07,
+    "ZToMuMu_M-50To120": 2116.0,
+    "ZToMuMu_M-6000ToInf": 2.526e-08,
+    "ZToMuMu_M-800To1400": 0.01709,
     "ZZ": 12.17
 }
