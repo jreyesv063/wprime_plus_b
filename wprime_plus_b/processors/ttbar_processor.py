@@ -431,6 +431,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         self.selections.add("good_tau", n_good_taus == 0)
         self.selections.add("met_pt", met.pt > 50)
         self.selections.add("two_bjets", n_good_bjets == 2)
+        self.selections.add("delta_phi", ak.any(np.abs(muons.delta_phi(met)) > 2, axis=1))
 
         # regions
         regions = {
@@ -449,6 +450,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 "metfilters",
                 "trigger_mu",
                 "deltaR",
+                "delta_phi",
                 "met_pt",
                 "two_bjets",
                 "good_tau",
