@@ -31,7 +31,6 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
         self._btagwp = btagWPs[self._tagger][self._year][self._wp]
         
         self.make_output = lambda: hist2.Hist(
-            hist2.axis.StrCategory([], name="tagger", growth=True),
             hist2.axis.Regular(20, 20, 500, name="pt"),
             hist2.axis.Regular(4, 0, 2.5, name="abseta", label="Jet abseta"),
             hist2.axis.IntCategory([0, 4, 5], name="flavor"),
@@ -56,7 +55,6 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
         for tagger, branch, wp in tags:
             passbtag = jets[branch] > self._btagwp
             out.fill(
-                tagger=tagger,
                 pt=ak.flatten(jets.pt),
                 abseta=ak.flatten(abs(jets.eta)),
                 flavor=ak.flatten(jets.hadronFlavour),
