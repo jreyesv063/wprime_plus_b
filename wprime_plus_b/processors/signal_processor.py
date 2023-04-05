@@ -34,14 +34,10 @@ class SignalRegionProcessor(processor.ProcessorABC):
         year: str = "2017",
         yearmod: str = "",
         channel: str = "ele",
-        output_location: str = "",
-        dir_name: str = "",
     ):
         self._year = year
         self._yearmod = yearmod
         self._channel = channel
-        self._output_location = output_location
-        self._dir_name = dir_name
 
         # open triggers
         with open("wprime_plus_b/data/triggers.json", "r") as f:
@@ -366,9 +362,7 @@ class SignalRegionProcessor(processor.ProcessorABC):
             self._btagSF = BTagCorrector(
                 wp="M", tagger="deepJet", year=self._year, mod=self._yearmod
             )
-            self._btagSF.add_btag_weight(
-                jets=events.Jet[good_bjets], weights=self.weights
-            )
+            self._btagSF.add_btag_weight(events=events, weights=self.weights)
 
             # electron weights
             add_electronID_weight(

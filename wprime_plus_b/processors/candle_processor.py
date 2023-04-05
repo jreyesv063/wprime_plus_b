@@ -31,14 +31,10 @@ class CandleProcessor(processor.ProcessorABC):
         year: str = "2017",
         yearmod: str = "",
         channel: str = "ele",
-        output_location: str = "",
-        dir_name: str = "",
     ):
         self._year = year
         self._yearmod = yearmod
         self._channel = channel
-        self._output_location = output_location
-        self._dir_name = dir_name
 
         # open triggers
         with open("wprime_plus_b/data/triggers.json", "r") as f:
