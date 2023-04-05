@@ -187,8 +187,8 @@ class BTagCorrector:
 
         Parameters:
         -----------
-            jets:
-                Event collection
+            events:
+                Events collection
             weights:
                 Weights object from coffea.analysis_tools
         """
