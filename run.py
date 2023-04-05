@@ -88,7 +88,7 @@ def main(args):
 
         proc = SignalRegionProcessor
     if args.processor == "candle":
-        from wprime_plus_b.processors.candle import CandleProcessor
+        from wprime_plus_b.processors.candle_processor import CandleProcessor
 
         proc = CandleProcessor
         
