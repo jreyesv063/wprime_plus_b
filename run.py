@@ -41,21 +41,18 @@ def main(args):
             print("Failed to upload the directory")
         
     # load fileset
-    filesets = {
-        "candle": "fileset_candle.json",
-        "ttbar": f"fileset_{args.year}_UL_NANO.json",
-        "trigger": f"fileset_{args.year}_UL_NANO.json",
-        "signal": f"fileset_{args.year}_UL_NANO.json",
-    }
-    with importlib.resources.path(
-        "wprime_plus_b.fileset", filesets[args.processor]
-    ) as path:
-        with open(path, "r") as handle:
-            data = (
-                json.load(handle)[args.channel]
-                if args.processor == "candle"
-                else json.load(handle)
-            )
+    if ("ZToMuMu" in args.sample) or ("ZToEleEle" in args.sample):
+        with importlib.resources.path(
+            "wprime_plus_b.fileset", "fileset_candle.json"
+        ) as path:
+            with open(path, "r") as handle:
+                data = json.load(handle)[args.channel]
+    else:
+         with importlib.resources.path(
+            "wprime_plus_b.fileset", f"fileset_{args.year}_UL_NANO.json"
+        ) as path:
+            with open(path, "r") as handle:
+                data = json.load(handle)
             
     with importlib.resources.path(
         "wprime_plus_b.data", "simplified_samples.json"
@@ -74,7 +71,7 @@ def main(args):
                 if args.nfiles != -1:
                     val = val[: args.nfiles]
                 fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
-                
+
     # define processor
     if args.processor == "ttbar":
         from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
