@@ -40,39 +40,42 @@ def main(args):
         except OSError:
             print("Failed to upload the directory")
         executor_args.update({"client": client})
-
+        
     # load fileset
-    fname = (
-        f"{args.sample}.json"
-        if args.processor == "candle"
-        else f"fileset_{args.year}_UL_NANO.json"
-    )
-    with importlib.resources.path("wprime_plus_b.fileset", fname) as path:
+    filesets = {
+        "candle": "fileset_candle.json",
+        "ttbar": f"fileset_{args.year}_UL_NANO.json",
+        "trigger": f"fileset_{args.year}_UL_NANO.json",
+        "signal": f"fileset_{args.year}_UL_NANO.json",
+    }
+    with importlib.resources.path(
+        "wprime_plus_b.fileset", filesets[args.processor]
+    ) as path:
         with open(path, "r") as handle:
-            data = json.load(handle)
+            data = (
+                json.load(handle)[args.channel]
+                if args.processor == "candle"
+                else json.load(handle)
+            )
+            
     with importlib.resources.path(
         "wprime_plus_b.data", "simplified_samples.json"
     ) as path:
         with open(path, "r") as handle:
             simplified_samples = json.load(handle)[args.year]
             simplified_samples_r = {v: k for k, v in simplified_samples.items()}
+            
     for key, val in data.items():
-        if (
-            args.sample in simplified_samples_r
-            and simplified_samples_r[args.sample] in key
-        ):
-            sample = simplified_samples[key]
-        else:
-            sample = args.sample
-        fileset = {sample: val}
-        if val is not None:
-            if args.nfiles == -1:
+        if args.sample in key:
+            sample = (
+                simplified_samples[key] if key in simplified_samples else args.sample
+            )
+            fileset = {sample: val}
+            if val is not None:
+                if args.nfiles != -1:
+                    val = val[: args.nfiles]
                 fileset[sample] = ["root://xcache/" + file for file in val]
-            else:
-                fileset[sample] = [
-                    "root://xcache/" + file for file in val[: args.nfiles]
-                ]
-
+                
     # define processor
     if args.processor == "ttbar":
         from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
@@ -92,6 +95,7 @@ def main(args):
         from wprime_plus_b.processors.candle import CandleProcessor
 
         proc = CandleProcessor
+        
     # run processor
     out = processor.run_uproot_job(
         fileset,
@@ -148,32 +152,11 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--sample",
-        dest="sample",
-        type=str,
-        default="TTTo2L2Nu",
-        help="sample to process (see data/simplified_samples.json values)",
-    )
-    parser.add_argument(
-        "--workers",
-        dest="workers",
-        type=int,
-        default=4,
-        help="number of workers for the futures executor (default 4)",
-    )
-    parser.add_argument(
-        "--channel",
-        dest="channel",
-        type=str,
-        default="ele",
-        help="lepton channel {ele, mu}",
-    )
-    parser.add_argument(
         "--processor",
         dest="processor",
         type=str,
         default="ttbar",
-        help="processor to run {trigger, ttbar}",
+        help="processor to run {trigger, ttbar, candle, signal}",
     )
     parser.add_argument(
         "--executor",
@@ -183,13 +166,40 @@ if __name__ == "__main__":
         help="executor {iterative, futures, dask}",
     )
     parser.add_argument(
+        "--sample",
+        dest="sample",
+        type=str,
+        default="TTTo2L2Nu",
+        help="name of sample to process",
+    )
+    parser.add_argument(
+        "--channel",
+        dest="channel",
+        type=str,
+        default="ele",
+        help="lepton channel {ele, mu}",
+    )
+    parser.add_argument(
+        "--year", 
+        dest="year", 
+        type=str, 
+        default="2017", 
+        help="year"
+    )
+    parser.add_argument(
         "--nfiles",
         dest="nfiles",
         type=int,
         default=1,
         help="number of files per sample (default 1. To run all files use -1)",
     )
-    parser.add_argument("--year", dest="year", type=str, default="2017", help="year")
+    parser.add_argument(
+        "--workers",
+        dest="workers",
+        type=int,
+        default=4,
+        help="number of workers to use with futures executor (default 4)",
+    )
     parser.add_argument(
         "--yearmod",
         dest="yearmod",
