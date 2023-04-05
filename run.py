@@ -29,6 +29,8 @@ def main(args):
         from distributed.diagnostics.plugin import UploadDirectory
 
         client = Client(args.client)
+        executor_args.update({"client": client})
+        # upload local directory to dask workers
         try:
             client.register_worker_plugin(
                 UploadDirectory(f"{loc_base}", restart=True, update_path=True),
@@ -37,7 +39,6 @@ def main(args):
             print(f"Uploaded {loc_base} succesfully")
         except OSError:
             print("Failed to upload the directory")
-        executor_args.update({"client": client})
         
     # load fileset
     filesets = {
@@ -72,7 +73,7 @@ def main(args):
             if val is not None:
                 if args.nfiles != -1:
                     val = val[: args.nfiles]
-                fileset[sample] = ["root://xcache/" + file for file in val]
+                fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
                 
     # define processor
     if args.processor == "ttbar":
@@ -185,6 +186,13 @@ if __name__ == "__main__":
         help="year"
     )
     parser.add_argument(
+        "--yearmod",
+        dest="yearmod",
+        type=str,
+        default="",
+        help="year modifier {'', 'APV'}",
+    )
+    parser.add_argument(
         "--nfiles",
         dest="nfiles",
         type=int,
@@ -206,11 +214,11 @@ if __name__ == "__main__":
         help="dask client to use with dask executor",
     )
     parser.add_argument(
-        "--yearmod",
-        dest="yearmod",
+        "--redirector",
+        dest="redirector",
         type=str,
-        default="",
-        help="year modifier {'', 'APV'}",
+        default="xcache",
+        help="redirector to acces data {xcache to use at coffea-casa}"
     )
     parser.add_argument(
         "--output_location",
