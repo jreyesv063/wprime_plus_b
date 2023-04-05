@@ -140,9 +140,13 @@ class BTagCorrector:
             get_pog_json(json_name="btag", year=year + mod)
         )
 
-    def btag_SF(self, j, syst="central"):
+        with importlib.resources.path(
+            "wprime_plus_b.data", f"btageff_{tagger}_{wp}_{year}.coffea"
+        ) as filename:
+            self.efflookup = util.load(str(filename))
+
+    def btag_sf(self, j, syst="central"):
         # syst: central, down, down_correlated, down_uncorrelated, up, up_correlated
-        # until correctionlib handles jagged data natively we have to flatten and unflatten
         j, nj = ak.flatten(j), ak.num(j)
         sf = self._cset[f"{self._tagger}_{self._sf}"].evaluate(
             syst,
@@ -153,28 +157,66 @@ class BTagCorrector:
         )
         return ak.unflatten(sf, nj)
 
-    def add_btag_weight(self, jets: ak.Array, weights: Type[Weights]):
+    def light_tag_sf(self, j, syst="central"):
+        # syst: central, down, down_correlated, down_uncorrelated, up, up_correlated
+        j, nj = ak.flatten(j), ak.num(j)
+        sf = self._cset["deepJet_incl"].evaluate(
+            syst,
+            self._wp,
+            np.array(j.hadronFlavour),
+            np.array(abs(j.eta)),
+            np.array(j.pt),
+        )
+        return ak.unflatten(sf, nj)
+
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagSFMethods
+    @staticmethod
+    def get_btag_weight(eff, sf, passbtag):
+        # tagged SF = SF*eff / eff = SF
+        tagged_sf = ak.prod(sf[passbtag], axis=-1)
+        # untagged SF = (1 - SF*eff) / (1 - eff)
+        untagged_sf = ak.prod(((1 - sf * eff) / (1 - eff))[~passbtag], axis=-1)
+
+        return ak.fill_none(tagged_sf * untagged_sf, 1.0)
+
+    def add_btag_weight(self, events: ak.Array, weights: Type[Weights]):
         """
         add b-tagging scale factor
 
         Parameters:
         -----------
             jets:
-                jets selected in your analysis
+                Event collection
             weights:
                 Weights object from coffea.analysis_tools
         """
-        # bjets (hadron flavor definition: 5=b, 4=c, 0=udsg)
-        bjets = jets[(jets.hadronFlavour > 0) & (abs(jets.eta) < 2.5)]
+        phasespace_cuts = (abs(events.Jet.eta) < 2.5) & (events.Jet.pt > 20.0)
 
-        # b-tag nominal scale factors
-        bSF = self.btag_SF(bjets, "central")
+        # hadron flavor definition: 5=b, 4=c, 0=udsg
+        bc_jets = events.Jet[phasespace_cuts & (events.Jet.hadronFlavour > 0)]
+        light_jets = events.Jet[phasespace_cuts & (events.Jet.hadronFlavour == 0)]
 
-        # combine eff and SF as tagged SF * untagged SF
-        nominal_weight = ak.prod(bSF, axis=-1)
+        # efficiencies
+        bc_eff = self.efflookup(bc_jets.hadronFlavour, bc_jets.pt, abs(bc_jets.eta))
+        light_eff = self.efflookup(
+            light_jets.hadronFlavour, light_jets.pt, abs(light_jets.eta)
+        )
+
+        # scale factors
+        bc_jets_sf = self.btag_sf(bc_jets)
+        light_jets_sf = self.light_tag_sf(light_jets)
+
+        # pass btag wp
+        bc_pass = bc_jets[self._branch] > self._btagwp
+        light_pass = light_jets[self._branch] > self._btagwp
+
+        # get nominal weights
+        bc_jets_weight = self.get_btag_weight(bc_eff, bc_jets_sf, bc_pass)
+        light_jets_weight = self.get_btag_weight(light_eff, light_jets_sf, light_pass)
 
         # add nominal weight
-        weights.add(name="btagSF", weight=nominal_weight)
+        weights.add(name="bc_btagSF", weight=bc_jets_weight)
+        weights.add(name="light_btagSF", weight=light_jets_weight)
 
 
 # ----------------------------------
@@ -245,7 +287,6 @@ def add_electronID_weight(
     # unflatten
     for key in values:
         values[key] = prod_unflatten(values[key], n)
-
     weights.add(
         name=f"electronID",
         weight=values["nominal"],
@@ -308,7 +349,6 @@ def add_electronReco_weight(
     # unflatten
     for key in values:
         values[key] = prod_unflatten(values[key], n)
-
     weights.add(
         name=f"electronReco",
         weight=values["nominal"],
@@ -349,7 +389,6 @@ def add_electronTrigger_weight(
         # unflatten
         for key in values:
             values[key] = prod_unflatten(values[key], n)
-
         weights.add(
             name=f"electronTrigger",
             weight=values["nominal"],
@@ -433,7 +472,6 @@ def add_muon_weight(
     # unflatten
     for key in values:
         values[key] = prod_unflatten(values[key], n)
-
     weights.add(
         name=f"muon{sf_type.capitalize()}",
         weight=values["nominal"],
@@ -498,7 +536,6 @@ def add_muonTriggerIso_weight(
     # unflatten
     for key in values:
         values[key] = prod_unflatten(values[key], n)
-
     weights.add(
         name="muonTriggerIso",
         weight=values["nominal"],
