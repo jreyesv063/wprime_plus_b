@@ -41,7 +41,7 @@ def main(args):
             print("Failed to upload the directory")
         
     # load fileset
-    if "DYJetsToLL" in args.sample:
+    if args.processor == "candle":
         with importlib.resources.path(
             "wprime_plus_b.fileset", "fileset_candle.json"
         ) as path:
