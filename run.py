@@ -41,12 +41,12 @@ def main(args):
             print("Failed to upload the directory")
         
     # load fileset
-    if ("ZToMuMu" in args.sample) or ("ZToEleEle" in args.sample):
+    if "DYJetsToLL" in args.sample:
         with importlib.resources.path(
             "wprime_plus_b.fileset", "fileset_candle.json"
         ) as path:
             with open(path, "r") as handle:
-                data = json.load(handle)[args.channel]
+                data = json.load(handle)
     else:
          with importlib.resources.path(
             "wprime_plus_b.fileset", f"fileset_{args.year}_UL_NANO.json"
@@ -71,6 +71,7 @@ def main(args):
                 if args.nfiles != -1:
                     val = val[: args.nfiles]
                 fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
+            break
 
     # define processor
     if args.processor == "ttbar":
