@@ -1,7 +1,7 @@
 import json
 import hist 
-import awkward as ak
 import importlib.resources
+import awkward as ak
 from coffea import processor
 from coffea.analysis_tools import Weights
 
@@ -37,7 +37,6 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
                 hist.axis.Regular(4, 0, 2.5, name="abseta"),
                 hist.axis.IntCategory([0, 4, 5], name="flavor"),
                 hist.axis.Regular(2, 0, 2, name="passWP"),
-                hist.storage.Weight()
             )
         }
 
@@ -62,7 +61,6 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
             abseta=ak.flatten(abs(jets.eta)),
             flavor=ak.flatten(jets.hadronFlavour),
             passWP=ak.flatten(passbtag),
-            weight=ak.flatten(events.genWeight * ak.ones_like(jets.pt))
         )
         return {dataset: out}
 
