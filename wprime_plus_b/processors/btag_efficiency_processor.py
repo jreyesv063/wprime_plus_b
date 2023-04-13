@@ -30,15 +30,12 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
                 btagWPs = json.load(handle)
         self._btagwp = btagWPs[self._tagger][self._year][self._wp]
         
-        self.make_output = lambda: {
-            "sumw": 0,
-            "eff_hist": hist.Hist(
-                hist.axis.Regular(20, 20, 500, name="pt"),
-                hist.axis.Regular(4, 0, 2.5, name="abseta"),
-                hist.axis.IntCategory([0, 4, 5], name="flavor"),
-                hist.axis.Regular(2, 0, 2, name="passWP"),
-            )
-        }
+        self.make_output = lambda: hist.Hist(
+            hist.axis.Regular(20, 20, 500, name="pt"),
+            hist.axis.Regular(4, 0, 2.5, name="abseta"),
+            hist.axis.IntCategory([0, 4, 5], name="flavor"),
+            hist.axis.Regular(2, 0, 2, name="passWP"),
+        )
 
     @property
     def accumulator(self):
@@ -47,7 +44,6 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
     def process(self, events):
         dataset = events.metadata["dataset"]
         out = self.make_output()
-        out["sumw"] = ak.sum(events.genWeight)
         
         phasespace_cuts = (
             (abs(events.Jet.eta) < 2.5)
@@ -56,7 +52,7 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
         jets = events.Jet[phasespace_cuts]
         passbtag = jets.btagDeepFlavB > self._btagwp
         
-        out["eff_hist"].fill(
+        out.fill(
             pt=ak.flatten(jets.pt),
             abseta=ak.flatten(abs(jets.eta)),
             flavor=ak.flatten(jets.hadronFlavour),
