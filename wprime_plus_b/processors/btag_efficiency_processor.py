@@ -1,9 +1,9 @@
 import json
+import hist 
 import awkward as ak
-import hist as hist2
 import importlib.resources
 from coffea import processor
-
+from coffea.analysis_tools import Weights
 
 class BTagEfficiencyProcessor(processor.ProcessorABC):
     """
@@ -30,37 +30,41 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
                 btagWPs = json.load(handle)
         self._btagwp = btagWPs[self._tagger][self._year][self._wp]
         
-        self.make_output = lambda: hist2.Hist(
-            hist2.axis.Regular(20, 20, 500, name="pt"),
-            hist2.axis.Regular(4, 0, 2.5, name="abseta", label="Jet abseta"),
-            hist2.axis.IntCategory([0, 4, 5], name="flavor"),
-            hist2.axis.Regular(2, 0, 2, name="passWP"),
-        )
+        self.make_output = lambda: {
+            "sumw": 0,
+            "eff_hist": hist.Hist(
+                hist.axis.Regular(20, 20, 500, name="pt"),
+                hist.axis.Regular(4, 0, 2.5, name="abseta"),
+                hist.axis.IntCategory([0, 4, 5], name="flavor"),
+                hist.axis.Regular(2, 0, 2, name="passWP"),
+                hist.storage.Weight()
+            )
+        }
 
     @property
     def accumulator(self):
         return self._accumulator
 
     def process(self, events):
+        dataset = events.metadata["dataset"]
+        out = self.make_output()
+        out["sumw"] = ak.sum(events.genWeight)
+        
         phasespace_cuts = (
             (abs(events.Jet.eta) < 2.5)
             & (events.Jet.pt > 20.)
         )
         jets = events.Jet[phasespace_cuts]
+        passbtag = jets.btagDeepFlavB > self._btagwp
+        
+        out["eff_hist"].fill(
+            pt=ak.flatten(jets.pt),
+            abseta=ak.flatten(abs(jets.eta)),
+            flavor=ak.flatten(jets.hadronFlavour),
+            passWP=ak.flatten(passbtag),
+            weight=ak.flatten(events.genWeight * ak.ones_like(jets.pt))
+        )
+        return {dataset: out}
 
-        out = self.make_output()
-        tags = [
-            ("deepJet", "btagDeepFlavB", "M"),
-        ]
-        for tagger, branch, wp in tags:
-            passbtag = jets[branch] > self._btagwp
-            out.fill(
-                pt=ak.flatten(jets.pt),
-                abseta=ak.flatten(abs(jets.eta)),
-                flavor=ak.flatten(jets.hadronFlavour),
-                passWP=ak.flatten(passbtag),
-            )
-        return out
-
-    def postprocess(self, a):
-        return a
+    def postprocess(self, accumulator):
+        return accumulator
