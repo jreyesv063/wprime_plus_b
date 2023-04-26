@@ -87,7 +87,7 @@ class CandleProcessor(processor.ProcessorABC):
                     trigger[ch] = trigger[ch] | events.HLT[t]
         # electrons
         good_electrons = (
-            (events.Electron.pt >= 30)
+            (events.Electron.pt >= 40)
             & (np.abs(events.Electron.eta) < 2.4)
             & (
                 (np.abs(events.Electron.eta) < 1.44)
@@ -201,6 +201,7 @@ class CandleProcessor(processor.ProcessorABC):
         self.selections.add("lumi", lumi_mask)
         self.selections.add("metfilters", metfilters)
         self.selections.add("two_leptons", n_good_leptons[self._channel])
+        self.selections.add("leading_electron", leading_electron.pt > 45)
         self.selections.add(
             "mass_range",
             (60 < invariant_mass[self._channel])
@@ -215,6 +216,7 @@ class CandleProcessor(processor.ProcessorABC):
                 "trigger_ele",
                 "mass_range",
                 "two_leptons",
+                "leading_electron",
             ],
             "mu": [
                 "lumi",
