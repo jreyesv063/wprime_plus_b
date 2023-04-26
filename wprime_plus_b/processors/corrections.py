@@ -1,4 +1,6 @@
 import json
+import gzip
+import cloudpickle
 import correctionlib
 import numpy as np
 import awkward as ak
@@ -139,8 +141,8 @@ class BTagCorrector:
         self._cset = correctionlib.CorrectionSet.from_file(
             get_pog_json(json_name="btag", year=year + mod)
         )
-        
-        # load efficiency lookup table 
+
+        # load efficiency lookup table
         # efflookup(pt, |eta|, flavor)
         with importlib.resources.path(
             "wprime_plus_b.data", f"btag_eff_{tagger}_{wp}_{year}.coffea"
@@ -199,9 +201,9 @@ class BTagCorrector:
         light_jets = events.Jet[phasespace_cuts & (events.Jet.hadronFlavour == 0)]
 
         # efficiencies
-        bc_eff = self.efflookup(bc_jets.pt, abs(bc_jets.eta), bc_jets.hadronFlavour)
+        bc_eff = self.efflookup(bc_jets.pt, np.abs(bc_jets.eta), bc_jets.hadronFlavour)
         light_eff = self.efflookup(
-            light_jets.pt, abs(light_jets.eta), light_jets.hadronFlavour
+            light_jets.pt, np.abs(light_jets.eta), light_jets.hadronFlavour
         )
 
         # scale factors
@@ -217,8 +219,9 @@ class BTagCorrector:
         light_jets_weight = self.get_btag_weight(light_eff, light_jets_sf, light_pass)
 
         # add nominal weight
-        weights.add(name="bc_btagSF", weight=bc_jets_weight)
-        weights.add(name="light_btagSF", weight=light_jets_weight)
+        weights.add(name="bc_btag", weight=bc_jets_weight)
+        weights.add(name="light_btag", weight=bc_jets_weight)
+        
 
 
 # ----------------------------------
@@ -352,7 +355,7 @@ def add_electronReco_weight(
     for key in values:
         values[key] = prod_unflatten(values[key], n)
     weights.add(
-        name=f"electronReco",
+        name="electronReco",
         weight=values["nominal"],
         weightUp=values["up"],
         weightDown=values["down"],
@@ -392,7 +395,7 @@ def add_electronTrigger_weight(
         for key in values:
             values[key] = prod_unflatten(values[key], n)
         weights.add(
-            name=f"electronTrigger",
+            name="electronTrigger",
             weight=values["nominal"],
         )
 
@@ -603,3 +606,18 @@ def get_met_corrections(
         return corrected_met_pt, corrected_met_phi
     except:
         return met_pt, met_phi
+
+# jet resolution
+with importlib.resources.path("wprime_plus_b.data", "jec_compiled.pkl.gz") as path:
+    with gzip.open(path) as fin:
+        jmestuff = cloudpickle.load(fin)
+        
+jet_factory = jmestuff["jet_factory"]
+met_factory = jmestuff["met_factory"]
+
+def add_jec_variables(jets, event_rho):
+    jets["pt_raw"] = (1 - jets.rawFactor)*jets.pt
+    jets["mass_raw"] = (1 - jets.rawFactor)*jets.mass
+    jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+    jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+    return jets

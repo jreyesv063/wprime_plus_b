@@ -25,6 +25,9 @@ from .corrections import (
     add_muon_weight,
     add_muonTriggerIso_weight,
     get_met_corrections,
+    jet_factory,
+    met_factory,
+    add_jec_variables,
 )
 
 
@@ -288,18 +291,22 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         taus = events.Tau[good_taus]
 
         # b-jets
+        jets = jet_factory[f"{self._year + self._yearmod}mc"].build(
+            add_jec_variables(events.Jet, events.fixedGridRhoFastjetAll),
+            events.caches[0],
+        )
         good_bjets = (
-            (events.Jet.pt >= 20)
-            & (events.Jet.jetId == 6)
-            & (events.Jet.puId == 7)
-            & (events.Jet.btagDeepFlavB > self._btagDeepFlavB)
-            & (np.abs(events.Jet.eta) < 2.4)
+            (jets.pt >= 20)
+            & (jets.jetId == 6)
+            & (jets.puId == 7)
+            & (jets.btagDeepFlavB > self._btagDeepFlavB)
+            & (np.abs(jets.eta) < 2.4)
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
         candidatebjet = ak.firsts(events.Jet[good_bjets])
 
         # missing energy
-        met = events.MET
+        met = met_factory.build(events.MET, jets, {})
         met["pt"], met["phi"] = get_met_corrections(
             year=self._year,
             is_mc=self.isMC,
@@ -425,7 +432,9 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         self.selections.add("good_tau", n_good_taus == 0)
         self.selections.add("met_pt", met.pt > 50)
         self.selections.add("two_bjets", n_good_bjets == 2)
-        self.selections.add("delta_phi", ak.any(np.abs(muons.delta_phi(met)) > 2, axis=1))
+        # self.selections.add(
+        #    "delta_phi", ak.any(np.abs(muons.delta_phi(met)) > 2, axis=1)
+        # )
 
         # regions
         regions = {
@@ -444,7 +453,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 "metfilters",
                 "trigger_mu",
                 "deltaR",
-                "delta_phi",
+                # "delta_phi",
                 "met_pt",
                 "two_bjets",
                 "good_tau",
@@ -523,7 +532,10 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 self.output["cutflow"][selection] = np.sum(cutflow_weight[cutflow_cut])
             else:
                 self.output["cutflow"][selection] = np.sum(cutflow_cut)
-        return {dataset: self.output}
+        return {
+            dataset: self.output,
+            "weight_statistics": self.weights.weightStatistics,
+        }
 
     def postprocess(self, accumulator):
         return accumulator
