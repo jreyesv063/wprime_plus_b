@@ -3,7 +3,6 @@ import hist
 import importlib.resources
 import awkward as ak
 from coffea import processor
-from coffea.analysis_tools import Weights
 
 class BTagEfficiencyProcessor(processor.ProcessorABC):
     """
@@ -31,12 +30,13 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
         self._btagwp = btagWPs[self._tagger][self._year][self._wp]
         
         self.make_output = lambda: hist.Hist(
-            hist.axis.Regular(20, 20, 500, name="pt"),
+            hist.axis.StrCategory([], growth=True, name="dataset"),
+            hist.axis.Variable([20, 30, 50, 70, 100, 140, 200, 300, 600, 1000], name="pt"),
             hist.axis.Regular(4, 0, 2.5, name="abseta"),
             hist.axis.IntCategory([0, 4, 5], name="flavor"),
             hist.axis.Regular(2, 0, 2, name="passWP"),
         )
-
+        
     @property
     def accumulator(self):
         return self._accumulator
@@ -53,12 +53,13 @@ class BTagEfficiencyProcessor(processor.ProcessorABC):
         passbtag = jets.btagDeepFlavB > self._btagwp
         
         out.fill(
+            dataset=dataset,
             pt=ak.flatten(jets.pt),
             abseta=ak.flatten(abs(jets.eta)),
             flavor=ak.flatten(jets.hadronFlavour),
             passWP=ak.flatten(passbtag),
         )
-        return {dataset: out}
+        return out
 
     def postprocess(self, accumulator):
         return accumulator
