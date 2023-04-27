@@ -204,8 +204,8 @@ class CandleProcessor(processor.ProcessorABC):
         self.selections.add("leading_electron", leading_electron.pt > 45)
         self.selections.add(
             "mass_range",
-            (60 < invariant_mass[self._channel])
-            & (invariant_mass[self._channel] < 120),
+            (75 < invariant_mass[self._channel])
+            & (invariant_mass[self._channel] < 105),
         )
 
         # regions
