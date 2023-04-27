@@ -7,12 +7,70 @@ import dask
 import importlib.resources
 from datetime import datetime
 from coffea import processor
+from dask.distributed import Client
+from distributed.diagnostics.plugin import UploadDirectory
+from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
+from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
+from wprime_plus_b.processors.candle_processor import CandleProcessor
+from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
+from wprime_plus_b.processors.weights_processor import WeightsProcessor
+from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
 
 
 def main(args):
-    loc_base = os.environ["PWD"]
+    # load simplified names for datasets
+    with importlib.resources.path(
+        "wprime_plus_b.data", "simplified_samples.json"
+    ) as path:
+        with open(path, "r") as handle:
+            simplified_samples = json.load(handle)[args.year]
+            simplified_samples_r = {v: k for k, v in simplified_samples.items()}
 
-    # executors and arguments
+    # define fileset
+    def get_data(fileset):
+        with importlib.resources.path("wprime_plus_b.fileset", fileset) as path:
+            with open(path, "r") as handle:
+                data = json.load(handle)
+        return data
+
+    is_mc = any(s not in args.sample for s in ("Electron", "Muon"))
+    is_ul = args.sample in simplified_samples_r # is a full UL sample?
+    is_candle = args.processor == "candle"
+    
+    if is_ul:
+        data = get_data(f"fileset_{args.year}_UL_NANO.json")
+    elif is_candle and is_mc:
+        data = get_data("fileset_candle.json")
+    else:
+        data = get_data(f"{args.sample}.json")
+
+    fileset = {}
+    for key, val in data.items():
+        sample = simplified_samples[key] if key in simplified_samples else args.sample
+        if args.nfiles != -1:
+            val = val[: args.nfiles]
+        if not args.run_all and args.sample not in key:
+            continue
+        fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
+
+    # define processors
+    processors = {
+        "ttbar": TTbarControlRegionProcessor,
+        "trigger": TriggerEfficiencyProcessor,
+        "signal": SignalRegionProcessor,
+        "candle": CandleProcessor,
+        "btag_eff": BTagEfficiencyProcessor,
+        "weights": WeightsProcessor,
+    }
+    processor_kwargs = {
+        "year": args.year,
+        "yearmod": args.yearmod,
+        "channel": args.channel,
+    }
+    if args.processor == "btag_eff":
+        del processor_kwargs["channel"]
+        
+    # define executors
     executors = {
         "iterative": processor.iterative_executor,
         "futures": processor.futures_executor,
@@ -21,13 +79,10 @@ def main(args):
     executor_args = {
         "schema": processor.NanoAODSchema,
     }
-
     if args.executor == "futures":
         executor_args.update({"workers": args.workers})
     if args.executor == "dask":
-        from dask.distributed import Client
-        from distributed.diagnostics.plugin import UploadDirectory
-
+        loc_base = os.environ["PWD"]
         client = Client(args.client)
         executor_args.update({"client": client})
         # upload local directory to dask workers
@@ -39,84 +94,19 @@ def main(args):
             print(f"Uploaded {loc_base} succesfully")
         except OSError:
             print("Failed to upload the directory")
-        
-    # load fileset
-    if args.processor == "candle":
-        with importlib.resources.path(
-            "wprime_plus_b.fileset", "fileset_candle.json"
-        ) as path:
-            with open(path, "r") as handle:
-                data = json.load(handle)
-    else:
-         with importlib.resources.path(
-            "wprime_plus_b.fileset", f"fileset_{args.year}_UL_NANO.json"
-        ) as path:
-            with open(path, "r") as handle:
-                data = json.load(handle)
             
-    with importlib.resources.path(
-        "wprime_plus_b.data", "simplified_samples.json"
-    ) as path:
-        with open(path, "r") as handle:
-            simplified_samples = json.load(handle)[args.year]
-            simplified_samples_r = {v: k for k, v in simplified_samples.items()}
-            
-    for key, val in data.items():
-        if args.sample in key:
-            sample = (
-                simplified_samples[key] if key in simplified_samples else args.sample
-            )
-            fileset = {sample: val}
-            if val is not None:
-                if args.nfiles != -1:
-                    val = val[: args.nfiles]
-                fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
-            break
-
-    # define processor
-    if args.processor == "ttbar":
-        from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
-
-        proc = TTbarControlRegionProcessor
-    if args.processor == "trigger":
-        from wprime_plus_b.processors.trigger_efficiency_processor import (
-            TriggerEfficiencyProcessor,
-        )
-
-        proc = TriggerEfficiencyProcessor
-    if args.processor == "signal":
-        from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
-
-        proc = SignalRegionProcessor
-    if args.processor == "candle":
-        from wprime_plus_b.processors.candle_processor import CandleProcessor
-
-        proc = CandleProcessor
-    if args.processor == "btag_eff":
-        from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
-        
-        proc = BTagEfficiencyProcessor
-        
-    # processor args
-    processor_kwargs = {
-        "year": args.year,
-        "yearmod": args.yearmod,
-        "channel": args.channel,
-    }
-    if args.processor == "btag_eff": 
-        del processor_kwargs["channel"]
-    
     # run processor
     out = processor.run_uproot_job(
         fileset,
         treename="Events",
-        processor_instance=proc(**processor_kwargs),
+        processor_instance=processors[args.processor](**processor_kwargs),
         executor=executors[args.executor],
         executor_args=executor_args,
     )
 
     # save output
     date = datetime.today().strftime("%Y-%m-%d")
+    tag = args.processor if args.run_all else args.sample
     if not os.path.exists(
         args.output_location
         + date
@@ -147,7 +137,7 @@ def main(args):
         + "/"
         + args.channel
         + "/"
-        + f"{args.sample}.pkl",
+        + f"{tag}.pkl",
         "wb",
     ) as handle:
         pickle.dump(out, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -183,13 +173,7 @@ if __name__ == "__main__":
         default="ele",
         help="lepton channel {ele, mu}",
     )
-    parser.add_argument(
-        "--year", 
-        dest="year", 
-        type=str, 
-        default="2017", 
-        help="year"
-    )
+    parser.add_argument("--year", dest="year", type=str, default="2017", help="year")
     parser.add_argument(
         "--yearmod",
         dest="yearmod",
@@ -223,7 +207,7 @@ if __name__ == "__main__":
         dest="redirector",
         type=str,
         default="xcache",
-        help="redirector to acces data {xcache to use at coffea-casa}"
+        help="redirector to acces data {xcache to use at coffea-casa}",
     )
     parser.add_argument(
         "--output_location",
@@ -231,6 +215,13 @@ if __name__ == "__main__":
         type=str,
         default="./outfiles/",
         help="output location (default ./outfiles)",
+    )
+    parser.add_argument(
+        "--run_all",
+        dest="run_all",
+        type=bool,
+        default=True,
+        help="if True run all datasets in fileset",
     )
 
     args = parser.parse_args()
