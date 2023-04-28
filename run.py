@@ -33,13 +33,13 @@ def main(args):
                 data = json.load(handle)
         return data
 
-    is_mc = any(s not in args.sample for s in ("Electron", "Muon"))
-    is_ul = args.sample in simplified_samples_r # is a full UL sample?
+    is_mc = all(s not in args.sample for s in ("Electron", "Muon"))
+    is_ul = args.sample in simplified_samples_r  # is a full UL sample?
     is_candle = args.processor == "candle"
-    
+
     if is_ul:
         data = get_data(f"fileset_{args.year}_UL_NANO.json")
-    elif is_candle and is_mc:
+    elif is_candle and "DYJets" in args.sample:
         data = get_data("fileset_candle.json")
     else:
         data = get_data(f"{args.sample}.json")
@@ -69,7 +69,7 @@ def main(args):
     }
     if args.processor == "btag_eff":
         del processor_kwargs["channel"]
-        
+
     # define executors
     executors = {
         "iterative": processor.iterative_executor,
@@ -94,7 +94,7 @@ def main(args):
             print(f"Uploaded {loc_base} succesfully")
         except OSError:
             print("Failed to upload the directory")
-            
+
     # run processor
     out = processor.run_uproot_job(
         fileset,
@@ -220,7 +220,7 @@ if __name__ == "__main__":
         "--run_all",
         dest="run_all",
         type=bool,
-        default=True,
+        default=False,
         help="if True run all datasets in fileset",
     )
 
