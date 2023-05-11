@@ -190,6 +190,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                         name="muon_met_transverse_mass",
                         label=r"$m_T(\mu, p_T^{miss})$ [GeV]",
                     ),
+                    hist2.axis.Regular(30, 0, 4, name="muon_met_delta_phi", label=r"$\Delta phi(\mu, p_T^{miss})$"),
                     hist2.storage.Weight(),
                 ),
                 "muon_bjet_met_kin": hist2.Hist(
@@ -307,7 +308,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
 
         # missing energy
         met = met_factory.build(events.MET, jets, {})
-        met["pt"], met["phi"] = get_met_corrections(
+        met_pt, met_phi = get_met_corrections(
             year=self._year,
             is_mc=self.isMC,
             met_pt=met.pt,
@@ -315,7 +316,8 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             npvs=events.PV.npvs,
             mod=self._yearmod,
         )
-
+        met["pt"], met["phi"] = met_pt, met_phi
+        
         # lepton-bjet delta R and invariant mass
         ele_bjet_dr = candidatebjet.delta_r(electrons)
         ele_bjet_mass = (electrons + candidatebjet).mass
@@ -344,6 +346,9 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             (muons.pt + candidatebjet.pt + met.pt) ** 2
             - (muons + candidatebjet + met).pt ** 2
         )
+        # Lepton-Met delta phi
+        muon_met_delta_phi = np.abs(muons.delta_phi(met))
+        
         # weights
         self.weights = Weights(nevents, storeIndividual=True)
         if self.isMC:
@@ -516,6 +521,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             )
             self.output["muon_met_kin"].fill(
                 muon_met_transverse_mass=normalize(mu_met_transverse_mass, cut),
+                muon_met_delta_phi=normalize(muon_met_delta_phi, cut),
                 weight=region_weight,
             )
             self.output["muon_bjet_met_kin"].fill(
