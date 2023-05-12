@@ -13,7 +13,6 @@ from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
 from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
 from wprime_plus_b.processors.candle_processor import CandleProcessor
 from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
-from wprime_plus_b.processors.weights_processor import WeightsProcessor
 from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
 
 
@@ -60,7 +59,6 @@ def main(args):
         "signal": SignalRegionProcessor,
         "candle": CandleProcessor,
         "btag_eff": BTagEfficiencyProcessor,
-        "weights": WeightsProcessor,
     }
     processor_kwargs = {
         "year": args.year,
