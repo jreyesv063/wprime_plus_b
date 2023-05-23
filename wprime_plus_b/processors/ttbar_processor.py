@@ -15,7 +15,7 @@ from coffea import util
 from coffea import processor
 from coffea.nanoevents.methods import candidate, vector
 from coffea.analysis_tools import Weights, PackedSelection
-from .utils import normalize, get_run
+from .utils import normalize
 from .corrections import (
     BTagCorrector,
     add_pileup_weight,
