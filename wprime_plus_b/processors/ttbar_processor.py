@@ -1,19 +1,9 @@
-import os
 import json
+import hist
 import pickle
-import correctionlib
 import numpy as np
-import pandas as pd
 import awkward as ak
-import pyarrow as pa
-import hist as hist2
-import pyarrow.parquet as pq
-from datetime import datetime
-from typing import List, Union
-from typing import Type
-from coffea import util
 from coffea import processor
-from coffea.nanoevents.methods import candidate, vector
 from coffea.analysis_tools import Weights, PackedSelection
 from .utils import normalize
 from .corrections import (
@@ -25,7 +15,7 @@ from .corrections import (
     add_muon_weight,
     add_muonTriggerIso_weight,
     get_met_corrections,
-    JecJerCorrector,
+    get_jec_jer_corrections,
 )
 
 
@@ -58,72 +48,72 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             self.make_output = lambda: {
                 "sumw": 0,
                 "cutflow": {},
-                "jet_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "jet_kin": hist.Hist(
+                    hist.axis.Variable(
                         [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
                         name="jet_pt",
                         label=r"bJet $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"
                     ),
-                    hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
-                    hist2.storage.Weight(),
+                    hist.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
+                    hist.storage.Weight(),
                 ),
-                "met_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "met_kin": hist.Hist(
+                    hist.axis.Variable(
                         [50, 75, 100, 125, 150, 175, 200, 300, 500],
                         name="met",
                         label=r"$p_T^{miss}$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -4.0, 4.0, name="met_phi", label=r"$\phi(p_T^{miss})$"
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "electron_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "electron_kin": hist.Hist(
+                    hist.axis.Variable(
                         [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
                         name="electron_pt",
                         label=r"electron $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         25, 0, 1, name="electron_relIso", label="electron RelIso"
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -2.4, 2.4, name="electron_eta", label="electron $\eta$"
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -4.0, 4.0, name="electron_phi", label="electron $\phi$"
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "electron_bjet_kin": hist2.Hist(
-                    hist2.axis.Regular(
+                "electron_bjet_kin": hist.Hist(
+                    hist.axis.Regular(
                         30, 0, 5, name="electron_bjet_dr", label="$\Delta R(e, bJet)$"
                     ),
-                    hist2.axis.Variable(
+                    hist.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500],
                         name="invariant_mass",
                         label=r"$m(e, bJet)$ [GeV]",
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "electron_met_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "electron_met_kin": hist.Hist(
+                    hist.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
                         name="electron_met_transverse_mass",
                         label=r"$m_T(e, p_T^{miss})$ [GeV]",
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "electron_bjet_met_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "electron_bjet_met_kin": hist.Hist(
+                    hist.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
                         name="electron_total_transverse_mass",
                         label=r"$m_T^{tot}(e, bJet, p_T^{miss})$ [GeV]",
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
             }
         # output muon histograms
@@ -131,79 +121,79 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             self.make_output = lambda: {
                 "sumw": 0,
                 "cutflow": {},
-                "jet_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "jet_kin": hist.Hist(
+                    hist.axis.Variable(
                         [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
                         name="jet_pt",
                         label=r"bJet $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"
                     ),
-                    hist2.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
-                    hist2.storage.Weight(),
+                    hist.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
+                    hist.storage.Weight(),
                 ),
-                "met_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "met_kin": hist.Hist(
+                    hist.axis.Variable(
                         [50, 75, 100, 125, 150, 175, 200, 300, 500],
                         name="met",
                         label=r"$p_T^{miss}$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -4.0, 4.0, name="met_phi", label=r"$\phi(p_T^{miss})$"
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "muon_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "muon_kin": hist.Hist(
+                    hist.axis.Variable(
                         [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
                         name="muon_pt",
                         label=r"muon $p_T$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         25, 0, 1, name="muon_relIso", label="muon RelIso"
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -2.4, 2.4, name="muon_eta", label="muon $\eta$"
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         50, -4.0, 4.0, name="muon_phi", label="muon phi"
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "muon_bjet_kin": hist2.Hist(
-                    hist2.axis.Regular(
+                "muon_bjet_kin": hist.Hist(
+                    hist.axis.Regular(
                         30, 0, 5, name="muon_bjet_dr", label="$\Delta R(\mu, bJet)$"
                     ),
-                    hist2.axis.Variable(
+                    hist.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500],
                         name="invariant_mass",
                         label=r"$m(\mu, bJet)$ [GeV]",
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "muon_met_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "muon_met_kin": hist.Hist(
+                    hist.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
                         name="muon_met_transverse_mass",
                         label=r"$m_T(\mu, p_T^{miss})$ [GeV]",
                     ),
-                    hist2.axis.Regular(
+                    hist.axis.Regular(
                         30,
                         0,
                         4,
                         name="muon_met_delta_phi",
                         label=r"$\Delta phi(\mu, p_T^{miss})$",
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
-                "muon_bjet_met_kin": hist2.Hist(
-                    hist2.axis.Variable(
+                "muon_bjet_met_kin": hist.Hist(
+                    hist.axis.Variable(
                         [40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
                         name="muon_total_transverse_mass",
                         label=r"$m_T^{tot}(\mu, bJet, p_T^{miss})$ [GeV]",
                     ),
-                    hist2.storage.Weight(),
+                    hist.storage.Weight(),
                 ),
             }
 
@@ -297,11 +287,9 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
 
         # jets and missing energy
         if self.is_mc:
-            jec_corrector = JecJerCorrector(events, self._year + self._yearmod)
-            jets, met = jec_corrector.get_corrections()
+            jets, met = get_jec_jer_corrections(events, self._year + self._yearmod)
         else:
             jets, met = events.Jet, events.MET
-            
         good_bjets = (
             (jets.pt >= 20)
             & (jets.jetId == 6)
