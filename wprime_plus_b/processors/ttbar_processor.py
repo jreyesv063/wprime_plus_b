@@ -15,7 +15,7 @@ from coffea import util
 from coffea import processor
 from coffea.nanoevents.methods import candidate, vector
 from coffea.analysis_tools import Weights, PackedSelection
-from .utils import normalize
+from .utils import normalize, get_run
 from .corrections import (
     BTagCorrector,
     add_pileup_weight,
@@ -25,9 +25,7 @@ from .corrections import (
     add_muon_weight,
     add_muonTriggerIso_weight,
     get_met_corrections,
-    jet_factory,
-    met_factory,
-    add_jec_variables,
+    JecJerCorrector,
 )
 
 
@@ -216,18 +214,18 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
     def process(self, events):
         dataset = events.metadata["dataset"]
         nevents = len(events)
-        self.isMC = hasattr(events, "genWeight")
+        self.is_mc = hasattr(events, "genWeight")
         self.output = self.make_output()
         self.output["cutflow"]["nevents"] = nevents
 
         # luminosity
-        if not self.isMC:
+        if not self.is_mc:
             lumi_mask = self._lumi_mask[self._year](events.run, events.luminosityBlock)
         else:
             lumi_mask = np.ones(len(events), dtype="bool")
         # MET filters
         metfilters = np.ones(nevents, dtype="bool")
-        metfilterkey = "mc" if self.isMC else "data"
+        metfilterkey = "mc" if self.is_mc else "data"
         for mf in self._metfilters[metfilterkey]:
             if mf in events.Flag.fields:
                 metfilters = metfilters & events.Flag[mf]
@@ -297,11 +295,13 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         n_good_taus = ak.sum(good_taus, axis=1)
         taus = events.Tau[good_taus]
 
-        # b-jets
-        jets = jet_factory[f"{self._year + self._yearmod}mc"].build(
-            add_jec_variables(events.Jet, events.fixedGridRhoFastjetAll),
-            events.caches[0],
-        )
+        # jets and missing energy
+        if self.is_mc:
+            jec_corrector = JecJerCorrector(events, self._year + self._yearmod)
+            jets, met = jec_corrector.get_corrections()
+        else:
+            jets, met = events.Jet, events.MET
+            
         good_bjets = (
             (jets.pt >= 20)
             & (jets.jetId == 6)
@@ -312,11 +312,9 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         n_good_bjets = ak.sum(good_bjets, axis=1)
         candidatebjet = ak.firsts(events.Jet[good_bjets])
 
-        # missing energy
-        met = met_factory.build(events.MET, jets, {})
         met_pt, met_phi = get_met_corrections(
             year=self._year,
-            is_mc=self.isMC,
+            is_mc=self.is_mc,
             met_pt=met.pt,
             met_phi=met.phi,
             npvs=events.PV.npvs,
@@ -357,7 +355,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
 
         # weights
         self.weights = Weights(nevents, storeIndividual=True)
-        if self.isMC:
+        if self.is_mc:
             # genweight
             self.output["sumw"] = ak.sum(events.genWeight)
             self.weights.add("genweight", events.genWeight)
@@ -377,10 +375,10 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 nPU=ak.to_numpy(events.Pileup.nPU),
             )
             # b-tagging
-            self._btagSF = BTagCorrector(
+            btag_corrector = BTagCorrector(
                 wp="M", tagger="deepJet", year=self._year, mod=self._yearmod
             )
-            self._btagSF.add_btag_weight(events=events, weights=self.weights)
+            btag_corrector.add_btag_weight(events=events, weights=self.weights)
 
             # electron weights
             add_electronID_weight(
@@ -540,7 +538,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             cutflow_selections.append(selection)
             cutflow_cut = self.selections.all(*cutflow_selections)
             self.output["cutflow"][selection] = np.sum(cutflow_cut)
-
         return {
             dataset: self.output,
             "weight_statistics": self.weights.weightStatistics,
