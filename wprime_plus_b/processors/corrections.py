@@ -2,13 +2,16 @@ import json
 import gzip
 import cloudpickle
 import correctionlib
+import contextlib
 import numpy as np
 import awkward as ak
 import importlib.resources
 from typing import Type
 from coffea import util
-from coffea.analysis_tools import Weights
 from .utils import prod_unflatten
+from coffea.analysis_tools import Weights
+from coffea.lookup_tools import extractor
+from coffea.jetmet_tools import JECStack, CorrectedJetsFactory, CorrectedMETFactory
 
 # CorrectionLib files are available from
 POG_CORRECTION_PATH = "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration"
@@ -607,17 +610,83 @@ def get_met_corrections(
     except:
         return met_pt, met_phi
 
-# jet resolution
-with importlib.resources.path("wprime_plus_b.data", "jec_compiled.pkl.gz") as path:
-    with gzip.open(path) as fin:
-        jmestuff = cloudpickle.load(fin)
+# JEC/JER
+# Recomendations https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECDataMC#Recommended_for_MC
+# files at:
+# JEC: https://github.com/cms-jet/JECDatabase/tree/master/textFiles
+# JER:  https://github.com/cms-jet/JRDatabase/tree/master/tarballs
+class JecJerCorrector:
+    def __init__(self, events: ak.Array, year: str):
+        self.events = events
+        self.year = year
+        self.is_mc = hasattr(events, "genWeight")
         
-jet_factory = jmestuff["jet_factory"]
-met_factory = jmestuff["met_factory"]
-
-def add_jec_variables(jets, event_rho):
-    jets["pt_raw"] = (1 - jets.rawFactor)*jets.pt
-    jets["mass_raw"] = (1 - jets.rawFactor)*jets.mass
-    jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
-    jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
-    return jets
+        self.jec_name_map = {
+            'JetPt': 'pt',
+            'JetMass': 'mass',
+            'JetEta': 'eta',
+            'JetA': 'area',
+            'ptGenJet': 'pt_gen',
+            'ptRaw': 'pt_raw',
+            'massRaw': 'mass_raw',
+            'Rho': 'event_rho',
+            'METpt': 'pt',
+            'METphi': 'phi',
+            'JetPhi': 'phi',
+            'UnClusteredEnergyDeltaX': 'MetUnclustEnUpDeltaX',
+            'UnClusteredEnergyDeltaY': 'MetUnclustEnUpDeltaY',
+        }
+        if not self.is_mc:
+            del self.jec_name_map['ptGenJet']
+            
+    def get_corrections(self):
+        if self.is_mc:
+            return self.mc_jet_factory()
+        else:
+            return self.data_jet_factory()
+        
+    def jet_factory_factory(self, files):
+        data_path = "/home/cms-jovyan/wprime_plus_b/wprime_plus_b/data"
+        ext = extractor()
+        ext.add_weight_sets([
+            f"* * {data_path}/{file}" for file in files
+        ])
+        ext.finalize()
+        self.jec_stack = JECStack(ext.make_evaluator())
+        return CorrectedJetsFactory(self.jec_name_map, self.jec_stack)
+    
+    def add_jec_variables(self, jets, event_rho):
+        jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+        jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
+        jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+        if self.is_mc:
+            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        return jets
+    
+    def mc_jet_factory(self):
+        jet_factory = {
+            "2017": self.jet_factory_factory(
+                files=[
+                    # JEC
+                    "JEC/MC/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt",
+                    #"JEC/MC/Summer19UL17_V5_MC_L1RC_AK4PFchs.jec.txt",
+                    "JEC/MC/Summer19UL17_V5_MC_L2L3Residual_AK4PFchs.jec.txt",
+                    "JEC/MC/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt",
+                    #"JEC/MC/Summer19UL17_V5_MC_L2Residual_AK4PFchs.jec.txt",
+                    "JEC/MC/Summer19UL17_V5_MC_L3Absolute_AK4PFchs.jec.txt",
+                    #"JEC/MC/RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt",
+                    # JER
+                    #"JER/MC/Summer19UL17_JRV3_MC_EtaResolution_AK4PFchs.jr.txt",
+                    #"JER/MC/Summer19UL17_JRV3_MC_PhiResolution_AK4PFchs.jr.txt",
+                    "JER/MC/Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
+                    "JER/MC/Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                ]
+            )
+        }
+        corrected_jets = jet_factory[f"{self.year}"].build(
+                self.add_jec_variables(self.events.Jet, self.events.fixedGridRhoFastjetAll),
+                self.events.caches[0],
+            )
+        corrected_met = CorrectedMETFactory(self.jec_name_map).build(self.events.MET, corrected_jets, {})
+        
+        return corrected_jets, corrected_met
