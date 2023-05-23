@@ -1,3 +1,4 @@
+import os
 import json
 import gzip
 import cloudpickle
@@ -12,6 +13,8 @@ from .utils import prod_unflatten
 from coffea.analysis_tools import Weights
 from coffea.lookup_tools import extractor
 from coffea.jetmet_tools import JECStack, CorrectedJetsFactory, CorrectedMETFactory
+
+loc_base = os.environ["PWD"]
 
 # CorrectionLib files are available from
 POG_CORRECTION_PATH = "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration"
@@ -646,7 +649,7 @@ class JecJerCorrector:
             return self.data_jet_factory()
         
     def jet_factory_factory(self, files):
-        data_path = "/home/cms-jovyan/wprime_plus_b/wprime_plus_b/data"
+        data_path = f"{loc_base}/wprime_plus_b/data"
         ext = extractor()
         ext.add_weight_sets([
             f"* * {data_path}/{file}" for file in files
