@@ -298,7 +298,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             & (np.abs(jets.eta) < 2.4)
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
-        candidatebjet = ak.firsts(events.Jet[good_bjets])
+        candidatebjet = ak.firsts(jets[good_bjets])
 
         met_pt, met_phi = get_met_corrections(
             year=self._year,
@@ -366,7 +366,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             btag_corrector = BTagCorrector(
                 wp="M", tagger="deepJet", year=self._year, mod=self._yearmod
             )
-            btag_corrector.add_btag_weight(events=events, weights=self.weights)
+            btag_corrector.add_btag_weight(jets=jets, weights=self.weights)
 
             # electron weights
             add_electronID_weight(
