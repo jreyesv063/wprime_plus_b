@@ -185,22 +185,22 @@ class BTagCorrector:
 
         return ak.fill_none(tagged_sf * untagged_sf, 1.0)
 
-    def add_btag_weight(self, events: ak.Array, weights: Type[Weights]):
+    def add_btag_weight(self, jets: ak.Array, weights: Type[Weights]):
         """
         add b-tagging scale factor
 
         Parameters:
         -----------
-            events:
-                Events collection
+            jets:
+                Jet collection
             weights:
                 Weights object from coffea.analysis_tools
         """
-        phasespace_cuts = (abs(events.Jet.eta) < 2.5) & (events.Jet.pt > 20.0)
+        phasespace_cuts = (abs(jets.eta) < 2.5) & (jets.pt > 20.0)
 
         # hadron flavor definition: 5=b, 4=c, 0=udsg
-        bc_jets = events.Jet[phasespace_cuts & (events.Jet.hadronFlavour > 0)]
-        light_jets = events.Jet[phasespace_cuts & (events.Jet.hadronFlavour == 0)]
+        bc_jets = jets[phasespace_cuts & (jets.hadronFlavour > 0)]
+        light_jets = jets[phasespace_cuts & (jets.hadronFlavour == 0)]
 
         # efficiencies
         bc_eff = self.efflookup(bc_jets.pt, np.abs(bc_jets.eta), bc_jets.hadronFlavour)
