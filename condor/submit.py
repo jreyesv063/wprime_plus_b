@@ -3,6 +3,7 @@ import json
 import argparse
 import subprocess
 from pathlib import Path
+from utils import divide_fileset
 
 
 def main(args):
@@ -21,12 +22,16 @@ def main(args):
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
         
-    # load fileset
+    # create args.nsplit json files for each sample
     with open(f"{main_dir}/wprime_plus_b/data/simplified_samples.json", "r") as handle:
         simplified_samples = json.load(handle)[args.year]
-        
+    samples = list(simplified_samples.keys())
+    filesets = divide_fileset(samples, args.nsplit, args.year)
+    if args.sample != "all":
+        filesets = {key: filesets[key] for key in filesets if args.sample in key}
+    
     # submit condor jobs
-    for sample in list(simplified_samples.values()):
+    for sample, fileset in filesets.items():
         print(f"submitting {sample}")
         # create sample directory
         sample_out_dir = Path(f"{out_dir}/{sample}")
@@ -59,6 +64,7 @@ def main(args):
             line = line.replace("REDIRECTOR", args.redirector)
             line = line.replace("OUTPUTLOCATION", str(out_dir))
             line = line.replace("TAG", args.tag)
+            line = line.replace("FILESET", fileset)
             sh_file.write(line)
         sh_file.close()
         sh_template_file.close()
@@ -132,5 +138,19 @@ if __name__ == "__main__":
         type=str,
         default="test",
         help="tag of the submitted jobs",
+    )
+    parser.add_argument(
+        "--nsplit",
+        dest="nsplit",
+        type=str,
+        default=5,
+        help="number of splits for each sample",
+    )
+    parser.add_argument(
+        "--sample",
+        dest="sample",
+        type=str,
+        default="all",
+        help="name of the sample (see simplified_samples values)",
     )
     main(parser.parse_args())
