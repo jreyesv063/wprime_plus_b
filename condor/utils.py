@@ -1,5 +1,4 @@
 import json
-import importlib.resources
 from pathlib import Path
 
 def divide_list(lst, n):
