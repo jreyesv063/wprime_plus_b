@@ -58,7 +58,6 @@ def main(args):
             line = line.replace("EXECUTOR", args.executor)
             line = line.replace("WORKERS", str(args.workers))
             line = line.replace("YEAR", args.year)
-            line = line.replace("SAMPLE", sample)
             line = line.replace("CHANNEL", args.channel)
             line = line.replace("NFILES", str(args.nfiles))
             line = line.replace("REDIRECTOR", args.redirector)
