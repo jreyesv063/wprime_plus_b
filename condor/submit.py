@@ -19,7 +19,7 @@ def main(args):
     username = os.environ["USER"]
     eos_dir = Path(f"/eos/user/{username[0]}/{username}")
     out_dir = Path(f"{condor_dir}/out/")
-    if not out_dir.exists():s
+    if not out_dir.exists():
         out_dir.mkdir(parents=True)
         
     # create args.nsplit json files for each sample
