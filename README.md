@@ -1,5 +1,13 @@
 # W' + b
 
+[![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+<p align="left">
+  <img width="300" src="https://i.imgur.com/OWhX13O.jpg" />
+</p>
+
+Python package for analyzing W' + b in the electron and muon channels. The analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries.
+
 - [Processors](#Processors)
     * [Trigger Efficiency Processor](#Trigger-Efficiency-Processor)
     * [TTBar Control Region Processor](#TTBar-Control-Region-Processor)
@@ -10,16 +18,6 @@
 - [Data fileset](#Data-fileset)
     * [Re-making the input dataset files with DAS](#Re-making-the-input-dataset-files-with-DAS)
     * [Luminosity](#luminosity)
-
-[![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
-<p align="left">
-  <img width="300" src="https://i.imgur.com/OWhX13O.jpg" />
-</p>
-
-Python package for analyzing W' + b in the electron and muon channels. The analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries.
-
-
 
 ## Processors
 
@@ -126,7 +124,7 @@ The processor applies the following pre-selection cuts
 |                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
 |                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30$ GeV                                         |
+|                        | $p_T$                        | $\geq 35$ GeV                                         |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | pfRelIso04_all               | $\lt 0.25$                                                        |
 |                        | tightId                      | $\text{True}$                   |
@@ -172,7 +170,7 @@ and additional selection cuts for each channel:
 | Muon Trigger          |
 | Luminosity calibration                  |
 | MET filters           |
-| $\Delta R (\mu, bjet) \gt 0.4$ |
+| $\Delta R (\mu, bjets) \gt 0.4$ |
 | $p_T^{miss}\gt 50$ GeV |
 | $N(bjet) = 2$                  |
 | $N(\tau) = 0$                  |
@@ -237,8 +235,49 @@ python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor dask
 
 ### Submitting Condor jobs
 
-To do
+Submitting and running jobs, as well as all condor queries now require the user to have a valid grid proxy in the CMS VO. This requires that you already have a grid certificate installed. The needed grid proxy is obtained via the usual command
+```bash
+voms-proxy-init --voms cms
+```
+To submit condor jobs we use the `submit.py` script:
 
+```
+usage: submit.py [-h] [--processor PROCESSOR] [--executor EXECUTOR] [--year YEAR] [--yearmod YEARMOD] [--channel CHANNEL] [--nfiles NFILES] [--workers WORKERS]
+                 [--redirector REDIRECTOR] [--tag TAG] [--nsplit NSPLIT] [--sample SAMPLE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --processor PROCESSOR
+                        processor to run {trigger, ttbar, signal, candle, btag_eff}
+  --executor EXECUTOR   executor {iterative, futures}
+  --year YEAR           year
+  --yearmod YEARMOD     year modifier {'', 'APV'}
+  --channel CHANNEL     lepton channel {ele, mu}
+  --nfiles NFILES       number of files per sample (default 1. To run all files use -1)
+  --workers WORKERS     number of workers to use with futures executor (default 4)
+  --redirector REDIRECTOR
+                        redirector to acces CMS datasets
+  --tag TAG             tag of the submitted jobs
+  --nsplit NSPLIT       number of splits for each sample
+  --sample SAMPLE       name of the sample (see simplified_samples values)
+```
+This script contains additional arguments not seen in `run.py`:
+* redirector: When you attempt to open a file, your application must query a redirector to find the file. You must specify the redirector to the application. Which redirector you use depends on your region, to minimize the distance over which the data must travel and thus minimize the reading latency. These "regional" redirectors will try file locations in your region first before trying to go overseas. If you are working in the US, it is best to use `cmsxrootd.fnal.gov` (default), while in Europe and Asia, it is best to use `xrootd-cms.infn.it`. There is also a "global redirector" at `cms-xrd-global.cern.ch` which will query all locations.
+* nsplit: Number of filesets and subsequent submits that will be made per sample.
+* tag: Label used to reference a specific submit.
+
+This script will create the condor and executable files (using the `submit.sub` and `submit.sh` templates) needed to submit jobs (see [here](https://batchdocs.web.cern.ch/local/quick.html) for more info). To run a processor using all samples of a particular year type:
+```bash
+python3 condor/submit.py --processor ttbar --channel ele --sample all --year 2017 --nfiles -1 --nsplit 5 --tag test
+```
+To run a particular sample just define the sample using the `--sample` flag as follows:
+```bash
+python3 condor/submit.py --processor ttbar --channel ele --sample TTTo2L2Nu --year 2017 --nfiles -1 --nsplit 5 --tag test
+```
+After submitting the jobs, you can watch their status typing
+```bash
+watch condor_q
+```
 
 ## Scale factors
 
