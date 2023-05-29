@@ -15,11 +15,11 @@ def main(args):
     if not log_dir.exists():
         log_dir.mkdir()
         
-    # username = os.environ["USER"]
-    # eos = Path(f"/eos/user/{username[0]}/{username}")
-    # out_dir = Path(str(eos) + args.tag)
+    # define EOS and output directories
+    username = os.environ["USER"]
+    eos_dir = Path(f"/eos/user/{username[0]}/{username}")
     out_dir = Path(f"{condor_dir}/out/")
-    if not out_dir.exists():
+    if not out_dir.exists():s
         out_dir.mkdir(parents=True)
         
     # create args.nsplit json files for each sample
@@ -29,7 +29,7 @@ def main(args):
     filesets = divide_fileset(samples, args.nsplit, args.year)
     if args.sample != "all":
         filesets = {key: filesets[key] for key in filesets if args.sample in key}
-    
+        
     # submit condor jobs
     for sample, fileset in filesets.items():
         print(f"submitting {sample}")
@@ -37,6 +37,7 @@ def main(args):
         sample_out_dir = Path(f"{out_dir}/{sample}")
         if not sample_out_dir.exists():
             sample_out_dir.mkdir(parents=True)
+            
         # make condor file
         condor_template_file = open(f"{condor_dir}/submit.sub")
         local_condor = f"{condor_dir}/{sample}.sub"
@@ -47,7 +48,7 @@ def main(args):
             condor_file.write(line)
         condor_file.close()
         condor_template_file.close()
-
+        
         # make executable file
         sh_template_file = open(f"{condor_dir}/submit.sh")
         local_sh = f"{condor_dir}/{sample}.sh"
@@ -64,6 +65,7 @@ def main(args):
             line = line.replace("OUTPUTLOCATION", str(out_dir))
             line = line.replace("TAG", args.tag)
             line = line.replace("FILESET", fileset)
+            line = line.replace("EOSDIR", str(eos_dir))
             sh_file.write(line)
         sh_file.close()
         sh_template_file.close()
@@ -86,7 +88,7 @@ if __name__ == "__main__":
         dest="executor",
         type=str,
         default="iterative",
-        help="executor {iterative, futures, dask}",
+        help="executor {iterative, futures}",
     )
     parser.add_argument("--year", dest="year", type=str, default="2017", help="year")
     parser.add_argument(
@@ -122,14 +124,7 @@ if __name__ == "__main__":
         dest="redirector",
         type=str,
         default="cmsxrootd.fnal.gov",
-        help="redirector to acces data {xcache to use at coffea-casa}",
-    )
-    parser.add_argument(
-        "--output_location",
-        dest="output_location",
-        type=str,
-        default="./outfiles/",
-        help="output location (default ./outfiles)",
+        help="redirector to acces CMS datasets",
     )
     parser.add_argument(
         "--tag",
