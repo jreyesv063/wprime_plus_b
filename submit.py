@@ -16,46 +16,32 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--facility",
+        dest="facility",
+        type=str,
+        default="coffea-casa",
+        help="facility to run jobs {'coffea-casa', 'lxplus'} (default coffea-casa)",
+    )
+    parser.add_argument(
+        "--redirector",
+        dest="redirector",
+        type=str,
+        default="xcache",
+        help="redirector to find CMS datasets {use 'xcache' at coffea-casa. use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus} (default xcache)",
+    )
+    parser.add_argument(
         "--processor",
         dest="processor",
         type=str,
         default="ttbar",
-        help="processor to be used {trigger, ttbar, candle, btag_eff}",
+        help="processor to be used {trigger, ttbar, candle, btag_eff} (default ttbar)",
     )
     parser.add_argument(
         "--executor",
         dest="executor",
         type=str,
         default="iterative",
-        help="executor to be used {iterative, futures, dask}",
-    )
-    parser.add_argument(
-        "--year",
-        dest="year",
-        type=str,
-        default="2017",
-        help="year of the data {2016, 2017, 2018}",
-    )
-    parser.add_argument(
-        "--yearmod",
-        dest="yearmod",
-        type=str,
-        default="",
-        help="year modifier {'', 'APV'}",
-    )
-    parser.add_argument(
-        "--channel",
-        dest="channel",
-        type=str,
-        default="mu",
-        help="lepton channel to be processed {'mu', 'ele'}",
-    )
-    parser.add_argument(
-        "--nfiles",
-        dest="nfiles",
-        type=int,
-        default=1,
-        help="number of .root files to be processed by sample (default 1. To run all files use -1)",
+        help="executor to be used {iterative, futures, dask} (default iterative)",
     )
     parser.add_argument(
         "--workers",
@@ -65,45 +51,66 @@ if __name__ == "__main__":
         help="number of workers to use with futures executor (default 4)",
     )
     parser.add_argument(
-        "--redirector",
-        dest="redirector",
+        "--year",
+        dest="year",
         type=str,
-        default="xcache",
-        help="redirector to find CMS datasets {use 'xcache' at coffea-casa. use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus}",
+        default="2017",
+        help="year of the data {2016, 2017, 2018} (default 2017)",
     )
     parser.add_argument(
-        "--tag",
-        dest="tag",
+        "--yearmod",
+        dest="yearmod",
         type=str,
-        default="test",
-        help="tag of the submitted jobs",
+        default="",
+        help="year modifier {'', 'APV'} (default '')",
     )
     parser.add_argument(
-        "--nsplit",
-        dest="nsplit",
-        type=int,
-        default=1,
-        help="number of subsets to divide the fileset into",
-    )
-    parser.add_argument(
-        "--sample",
-        dest="sample",
+        "--channel",
+        dest="channel",
         type=str,
-        default="all",
-        help="sample key to be processed",
-    )
-    parser.add_argument(
-        "--facility",
-        dest="facility",
-        type=str,
-        default="coffea-casa",
-        help="facility to run jobs {'coffea-casa', 'lxplus'}",
+        default="mu",
+        help="lepton channel to be processed {'mu', 'ele'} (default mu)",
     )
     parser.add_argument(
         "--fileset",
         dest="fileset",
         type=str,
         default="UL",
-        help="json fileset",
+        help="name of a json file at `wprime_plus_b/fileset` (default `wprime_plus_b/fileset/fileset_{year}_UL_NANO.json`)",
+    )
+    parser.add_argument(
+        "--sample",
+        dest="sample",
+        type=str,
+        default="all",
+        help="sample key to be processed {'all', 'mc' or <sample_name>} (default all)",
+    )
+    parser.add_argument(
+        "--nfiles",
+        dest="nfiles",
+        type=int,
+        default=1,
+        help="number of .root files to be processed by sample. To run all files use -1 (default 1)",
+    )
+    parser.add_argument(
+        "--nsplit",
+        dest="nsplit",
+        type=int,
+        default=1,
+        help="number of subsets to divide the fileset into (default 1)",
+    )
+    parser.add_argument(
+        "--tag",
+        dest="tag",
+        type=str,
+        default="test",
+        help="tag of the submitted jobs (default test)",
+    )
+    parser.add_argument(
+        "--eos",
+        dest="eos",
+        type=bool,
+        default=False,
+        help="wheter to copy or not output files to EOS (default False)",
     )
     main(parser.parse_args())

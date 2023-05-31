@@ -19,7 +19,7 @@ def run_lxplus(args):
         fileset:
             fileset to be processed (use 'UL' to select all UL samples)
         sample:
-            sample key to be processed
+            sample key to be processed {'all', 'mc' or <sample_name>}
         year:
             year of the data {2016, 2017, 2018}
         yearmod:
@@ -34,6 +34,8 @@ def run_lxplus(args):
             tag of the submitted jobs
         redirector:
             redirector to find CMS datasets {'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it', 'cms-xrd-global.cern.ch'}
+        eos:
+            wheter to copy or not output files to EOS (default False)
     """
     main_dir = Path.cwd()
     condor_dir = Path(f"{main_dir}/condor")
@@ -43,12 +45,17 @@ def run_lxplus(args):
     if not log_dir.exists():
         log_dir.mkdir()
         
-    # define EOS and output directories
-    username = os.environ["USER"]
-    eos_dir = Path(f"/eos/user/{username[0]}/{username}")
+    # define output directories
     out_dir = Path(f"{condor_dir}/out/")
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
+        
+    # define EOS area to move output files
+    if args.eos:
+        username = os.environ["USER"]
+        eos_dir = Path(f"/eos/user/{username[0]}/{username}")
+    else:
+        eos_dir = None
         
     # divide filesets in args.nsplit json files
     filesets = get_filesets(args.fileset, args.sample, args.year, args.nsplit)
