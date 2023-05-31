@@ -181,103 +181,104 @@ and additional selection cuts for each channel:
 
 ## How to run
 
-From within this repo, you can run the uproot job that will produce coffea output files. To see a list of arguments needed to run this program please enter the following in the terminal:
+The `submit.py` file executes a desired processor with user-selected options. To see a list of arguments needed to run this script please enter the following in the terminal:
 
 ```bash
-python run.py --help
+python3 submit.py --help
 ```
 The output should look something like this:
 
 ```
-usage: run.py [-h] [--sample SAMPLE] [--workers WORKERS] [--channel CHANNEL] [--processor PROCESSOR] [--executor EXECUTOR] [--nfiles NFILES] [--year YEAR] [--yearmod YEARMOD]
-              [--output_location OUTPUT_LOCATION]
+usage: submit.py [-h] [--processor PROCESSOR] [--executor EXECUTOR] [--year YEAR] [--yearmod YEARMOD] [--channel CHANNEL] [--nfiles NFILES] [--workers WORKERS] [--redirector REDIRECTOR]
+                 [--tag TAG] [--nsplit NSPLIT] [--sample SAMPLE] [--facility FACILITY] [--fileset FILESET]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --sample SAMPLE       sample to process (see data/simplified_samples.json values)
-  --workers WORKERS     number of workers for the futures executor (default 4)
-  --channel CHANNEL     lepton channel {ele, mu}
   --processor PROCESSOR
-                        processor to run {trigger, ttbar}
-  --executor EXECUTOR   executor {iterative, futures, dask}
-  --nfiles NFILES       number of files per sample (default 1. To run all files use -1)
-  --year YEAR           year
+                        processor to be used {trigger, ttbar, candle, btag_eff}
+  --executor EXECUTOR   executor to be used {iterative, futures, dask}
+  --year YEAR           year of the data {2016, 2017, 2018}
   --yearmod YEARMOD     year modifier {'', 'APV'}
-  --output_location OUTPUT_LOCATION
-                        output location (default ./outfiles)
+  --channel CHANNEL     lepton channel to be processed {'mu', 'ele'}
+  --nfiles NFILES       number of .root files to be processed by sample (default 1. To run all files use -1)
+  --workers WORKERS     number of workers to use with futures executor (default 4)
+  --redirector REDIRECTOR
+                        redirector to find CMS datasets {use 'xcache' at coffea-casa. use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus}
+  --tag TAG             tag of the submitted jobs
+  --nsplit NSPLIT       number of subsets to divide the fileset into
+  --sample SAMPLE       sample key to be processed
+  --facility FACILITY   facility to run jobs {'coffea-casa', 'lxplus'}
+  --fileset FILESET     json fileset
 ```
+By running this script, a desired processor is executed at some facility, defined by the `--facility` flag. [Coffea-Casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) is faster and more convenient, however still somewhat experimental so for large inputs and/or processors which may require heavier cpu/memory using HTCondor at lxplus is recommended (click [here](https://batchdocs.web.cern.ch/local/quick.html) for more info). 
 
-The `run.py` file executes the desired processor with user-selected options. By running this file, the analysis is performed and the results are stored in the `OUTPUT_LOCATION` directory, defined by the `--output_location` flag. 
+You can select the executor to run the processor using the `--executor` flag. Three executors are available: `iterative`, `futures`, and `dask`. The `iterative` executor uses a single worker, while the `futures` executor uses the number of workers specified by the `--workers` flag. The `dask` executor uses Dask functionalities to scale up the analysis (only available at coffea-casa).
 
-To run the desired processor, use the `--processor` flag and specify either `trigger` or `ttbar`. Select the electron (ele) or muon (mu) channel with the `--channel` flag. The dataset can be selected using `--sample`, followed by the name of the dataset you want to run. The available options can be found in `data/simplified_samples.json`.
+With `--fileset` you can define the name of a .json fileset at `wprime_plus_b/fileset`. The year can be selected using the `--year` flag, and the `--yearmod` flag is used to specify whether the dataset uses APV or not. Set `--fileset UL` to select the `wprime_plus_b/fileset/fileset_{year}_UL_NANO.json` fileset. Use `--sample all` to select all samples or `--sample mc` to select only MC samples. You can also select a particular sample by typing `--sample <sample_name>`, where the available sample names are:
+  * `DYJetsToLL_M-50_HT-70to100`
+  * `DYJetsToLL_M-50_HT-100to200`
+  * `DYJetsToLL_M-50_HT-200to400`
+  * `DYJetsToLL_M-50_HT-400to600`
+  * `DYJetsToLL_M-50_HT-600to800`
+  * `DYJetsToLL_M-50_HT-800to1200`
+  * `DYJetsToLL_M-50_HT-1200to2500`
+  * `DYJetsToLL_M-50_HT-2500toInf`
+  * `WJetsToLNu_HT-100To200`
+  * `WJetsToLNu_HT-200To400`
+  * `WJetsToLNu_HT-400To600`
+  * `WJetsToLNu_HT-600To800`
+  * `WJetsToLNu_HT-800To1200`
+  * `WJetsToLNu_HT-1200To2500`
+  * `WJetsToLNu_HT-2500ToInf`
+  * `ST_s-channel_4f_leptonDecays`
+  * `ST_t-channel_antitop_5f_InclusiveDecays`
+  * `ST_t-channel_top_5f_InclusiveDecays`
+  * `ST_tW_antitop_5f_inclusiveDecays`
+  * `ST_tW_top_5f_inclusiveDecays`
+  * `TTTo2L2Nu`
+  * `TTToHadronic`
+  * `TTToSemiLeptonic`
+  * `WW`
+  * `WZ`
+  * `ZZ`
+  * `SingleElectron`
+  * `SingleMuon`
 
-To select the number of `.root` files to load, use the `--nfiles` option. The year can be selected using the `--year` flag, and the `--yearmod` flag is used to specify whether the dataset uses APV or not.
+To lighten the workload of jobs, the fileset can be divided into sub-filesets by means of the `--nsplit` flag. You can also define the number of `.root` files to use by sample using the `--nfiles` option. 
 
-Three executors are available: `iterative`, `futures`, and `dask`. The `iterative` executor uses a single worker, while the `futures` executor uses the number of workers specified by the `--workers` flag. The `dask` executor uses Dask functionalities to scale up the analysis.
+When you attempt to open a CMS file, your application must query a redirector (defined by the `--redirector` flag) to find the file. Which redirector you use depends on your region and facility. At coffea-casa, use `--redirector xcache`.
 
-Let's assume we are using [Coffea-Casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) and we want to perform the analysis for the 2017 run.
+The `--tag` flag is used to defined a label for the submitted jobs.
 
-To test locally first, can do e.g.:
+Let's assume we are using coffea-casa and we want to execute the ttbar processor for the electron channel using the `TTTo2L2Nu` sample from 2017. To test locally first, can do e.g.:
 
 ```bash
-python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor iterative --year 2017 --nfiles 1 
+python3 submit.py --processor ttbar --executor iterative --channel ele --sample TTTo2L2Nu --nfiles 1 --tag test
 ```
 
-To scale up the analysis using Dask type:
+To scale up the analysis using Dask, first you need to define your Dask client inside the `submit/submit_coffea_casa.py` script (line 37), and then type:
 
 ```bash
-python run.py --processor ttbar --channel ele --sample TTTo2L2Nu --executor dask --year 2017 --nfiles -1 
+python3 submit.py --processor ttbar --executor dask --channel ele --sample TTTo2L2Nu --nfiles -1 --nsplit 5 --tag test
 ```
 
-#### Notes: 
-* Currently, the processors are only functional for the year 2017. 
-* Coffea-Casa is faster and more convenient, however still somewhat experimental so for large of inputs and/or processors which may require heavier cpu/memory Condor is recommended (see next section).
-
-### Submitting Condor jobs
-
-Submitting and running jobs, as well as all condor queries now require the user to have a valid grid proxy in the CMS VO. This requires that you already have a grid certificate installed. The needed grid proxy is obtained via the usual command
+To submit jobs at lxplus using HTCondor, you need to have a valid grid proxy in the CMS VO. This requires that you already have a grid certificate installed. The needed grid proxy is obtained via the usual command
 ```bash
 voms-proxy-init --voms cms
 ```
-To submit condor jobs we use the `submit.py` script:
-
-```
-usage: submit.py [-h] [--processor PROCESSOR] [--executor EXECUTOR] [--year YEAR] [--yearmod YEARMOD] [--channel CHANNEL] [--nfiles NFILES] [--workers WORKERS]
-                 [--redirector REDIRECTOR] [--tag TAG] [--nsplit NSPLIT] [--sample SAMPLE]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --processor PROCESSOR
-                        processor to run {trigger, ttbar, signal, candle, btag_eff}
-  --executor EXECUTOR   executor {iterative, futures}
-  --year YEAR           year
-  --yearmod YEARMOD     year modifier {'', 'APV'}
-  --channel CHANNEL     lepton channel {ele, mu}
-  --nfiles NFILES       number of files per sample (default 1. To run all files use -1)
-  --workers WORKERS     number of workers to use with futures executor (default 4)
-  --redirector REDIRECTOR
-                        redirector to acces CMS datasets
-  --tag TAG             tag of the submitted jobs
-  --nsplit NSPLIT       number of splits for each sample
-  --sample SAMPLE       name of the sample (see simplified_samples values)
-```
-This script contains additional arguments not seen in `run.py`:
-* redirector: When you attempt to open a file, your application must query a redirector to find the file. You must specify the redirector to the application. Which redirector you use depends on your region, to minimize the distance over which the data must travel and thus minimize the reading latency. These "regional" redirectors will try file locations in your region first before trying to go overseas. If you are working in the US, it is best to use `cmsxrootd.fnal.gov` (default), while in Europe and Asia, it is best to use `xrootd-cms.infn.it`. There is also a "global redirector" at `cms-xrd-global.cern.ch` which will query all locations.
-* nsplit: Number of filesets and subsequent submits that will be made per sample.
-* tag: Label used to reference a specific submit.
-
-This script will create the condor and executable files (using the `submit.sub` and `submit.sh` templates) needed to submit jobs (see [here](https://batchdocs.web.cern.ch/local/quick.html) for more info). To run a processor using all samples of a particular year type:
+Which redirector you use at lxplus depends on your region. These "regional" redirectors will try file locations in your region first before trying to go overseas, minimizing the distance over which the data must travel and thus minimize the reading latency. If you are working in the US, it is best to use `cmsxrootd.fnal.gov`, while in Europe and Asia, it is best to use `xrootd-cms.infn.it`. There is also a "global redirector" at `cms-xrd-global.cern.ch` which will query all locations. The script will create the condor and executable files (using the `submit.sub` and `submit.sh` templates) needed to submit jobs. To run a processor using all samples of a particular year type:
 ```bash
-python3 condor/submit.py --processor ttbar --channel ele --sample all --year 2017 --nfiles -1 --nsplit 5 --tag test
-```
-To run a particular sample just define the sample using the `--sample` flag as follows:
-```bash
-python3 condor/submit.py --processor ttbar --channel ele --sample TTTo2L2Nu --year 2017 --nfiles -1 --nsplit 5 --tag test
+python3 submit.py --processor ttbar --facility lxplus --redirector cmsxrootd.fnal.gov --channel ele --fileset all --year 2017 --nfiles -1 --nsplit 5 --tag test
 ```
 After submitting the jobs, you can watch their status typing
 ```bash
 watch condor_q
 ```
+At coffea-casa, the results are stored in the `/outfiles` folder. At lxplus, the results are stored at `condor/out`, from where they will subsequently be copied to your EOS area. 
+
+#### Notes: 
+* Currently, the processors are only functional for the year 2017. 
+
 
 ## Scale factors
 
