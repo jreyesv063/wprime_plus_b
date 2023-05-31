@@ -48,6 +48,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             self.make_output = lambda: {
                 "sumw": 0,
                 "cutflow": {},
+                "weighted_cutflow": {},
                 "jet_kin": hist.Hist(
                     hist.axis.Variable(
                         [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
@@ -121,6 +122,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             self.make_output = lambda: {
                 "sumw": 0,
                 "cutflow": {},
+                "weighted_cutflow": {},
                 "jet_kin": hist.Hist(
                     hist.axis.Variable(
                         [30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
@@ -227,8 +229,13 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 if t in events.HLT.fields:
                     trigger[ch] = trigger[ch] | events.HLT[t]
         # electrons
+        if self._channel == "mu":
+            electron_pt = 30
+        else:
+            electron_pt = 55
+            
         good_electrons = (
-            (events.Electron.pt >= 30)
+            (events.Electron.pt >= electron_pt)
             & (np.abs(events.Electron.eta) < 2.4)
             & (
                 (np.abs(events.Electron.eta) < 1.44)
@@ -315,6 +322,10 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         ele_bjet_mass = (electrons + candidatebjet).mass
         mu_bjet_dr = candidatebjet.delta_r(muons)
         mu_bjet_mass = (muons + candidatebjet).mass
+        
+        combination_all_bjet_electron=ak.cartesian([jets, electrons]) 
+        bjetr,electronr = ak.unzip(combination_all_bjet_electron)
+        delta_r_all=bjetr.delta_r(electronr)
 
         # lepton-MET transverse mass
         ele_met_tranverse_mass = np.sqrt(
@@ -432,13 +443,15 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         # self.selections.add(
         #    "delta_phi", ak.any(np.abs(muons.delta_phi(met)) > 2, axis=1)
         # )
-
+        self.selections.add("ele_bjet_dr", ak.all(delta_r_all > 0.4,axis=1))
+        
         # regions
         regions = {
             "ele": [
                 "lumi",
                 "metfilters",
                 "trigger_ele",
+                "ele_bjet_dr",
                 "met_pt",
                 "two_bjets",
                 "good_tau",
@@ -526,6 +539,10 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             cutflow_selections.append(selection)
             cutflow_cut = self.selections.all(*cutflow_selections)
             self.output["cutflow"][selection] = np.sum(cutflow_cut)
+            if self.is_mc:
+                gen_weight = self.weights.partial_weight(["genweight"])
+                self.output["weighted_cutflow"][selection] = np.sum(gen_weight[cutflow_cut])
+                
         return {
             dataset: self.output,
             "weight_statistics": self.weights.weightStatistics,
