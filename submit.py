@@ -48,7 +48,7 @@ if __name__ == "__main__":
         dest="channel",
         type=str,
         default="mu",
-        help="channel to be processed {'mu', 'ele'}",
+        help="lepton channel to be processed {'mu', 'ele'}",
     )
     parser.add_argument(
         "--nfiles",
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         dest="redirector",
         type=str,
         default="xcache",
-        help="redirector to find CMS datasets {use 'xcache' at coffea-casa, }",
+        help="redirector to find CMS datasets {use 'xcache' at coffea-casa. use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus}",
     )
     parser.add_argument(
         "--tag",

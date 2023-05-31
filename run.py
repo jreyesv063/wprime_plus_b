@@ -50,8 +50,6 @@ def main(args):
     if args.executor == "futures":
         executor_args.update({"workers": args.workers})
     if args.executor == "dask":
-        
-        
         client = Client(args.client)
         executor_args.update({"client": client})
         # upload local directory to dask workers
@@ -99,21 +97,21 @@ if __name__ == "__main__":
         dest="processor",
         type=str,
         default="ttbar",
-        help="processor to run {trigger, ttbar, signal, candle, btag_eff}",
+        help="processor to be used {trigger, ttbar, candle, btag_eff}",
     )
     parser.add_argument(
         "--executor",
         dest="executor",
         type=str,
         default="iterative",
-        help="executor {iterative, futures, dask}",
+        help="executor to be used {iterative, futures, dask}",
     )
     parser.add_argument(
         "--channel",
         dest="channel",
         type=str,
         default="ele",
-        help="lepton channel {ele, mu}",
+        help="lepton channel to be processed {'mu', 'ele'}",
     )
     parser.add_argument("--year", dest="year", type=str, default="2017", help="year")
     parser.add_argument(
@@ -128,7 +126,7 @@ if __name__ == "__main__":
         dest="nfiles",
         type=int,
         default=1,
-        help="number of files per sample (default 1. To run all files use -1)",
+        help="number of .root files to be processed by sample (default 1. To run all files use -1)",
     )
     parser.add_argument(
         "--workers",
@@ -142,7 +140,7 @@ if __name__ == "__main__":
         dest="redirector",
         type=str,
         default="xcache",
-        help="redirector to acces data {xcache to use at coffea-casa}",
+        help="redirector to find CMS datasets {use 'xcache' at coffea-casa. Use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus}",
     )
     parser.add_argument(
         "--output_location",
