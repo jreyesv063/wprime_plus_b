@@ -17,7 +17,7 @@ def run_coffea_casa(args):
         fileset:
             fileset to be processed (use 'UL' to select all UL samples)
         sample:
-            sample key to be processed
+            sample key to be processed {'all', 'mc' or <sample_name>}
         year:
             year of the data {2016, 2017, 2018}
         yearmod:
@@ -31,7 +31,7 @@ def run_coffea_casa(args):
         tag:
             tag of the submitted jobs
         redirector:
-            redirector to find CMS datasets {use 'xcache' at coffea-casa. use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus}
+            redirector to find CMS datasets. 'xcache' at coffea-casa. 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus.
     """
     # dask client at coffea-casa
     client = "tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
