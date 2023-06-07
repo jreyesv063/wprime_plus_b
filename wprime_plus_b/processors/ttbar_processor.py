@@ -228,12 +228,12 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             for t in self._triggers[ch]:
                 if t in events.HLT.fields:
                     trigger[ch] = trigger[ch] | events.HLT[t]
-        # electrons
+                    
+        # select good electrons
         if self._channel == "mu":
             electron_pt = 30
         else:
             electron_pt = 55
-            
         good_electrons = (
             (events.Electron.pt >= electron_pt)
             & (np.abs(events.Electron.eta) < 2.4)
@@ -260,7 +260,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             if hasattr(electrons, "pfRelIso04_all")
             else electrons.pfRelIso03_all
         )
-        # muons
+        # select good muons
         good_muons = (
             (events.Muon.pt >= 35)
             & (np.abs(events.Muon.eta) < 2.4)
@@ -280,7 +280,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             else muons.pfRelIso03_all
         )
 
-        # Tau
+        # select good taus
         good_taus = (
             (events.Tau.idDeepTau2017v2p1VSjet > 8)
             & (events.Tau.idDeepTau2017v2p1VSe > 8)
@@ -291,18 +291,27 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         )
         n_good_taus = ak.sum(good_taus, axis=1)
         taus = events.Tau[good_taus]
+        
+        # define the leptons collection
+        leptons = electrons if self._channel == "ele" else muons
 
-        # jets and missing energy
+        # apply JEC/JER corrections to jets 
         if self.is_mc:
             jets, met = get_jec_jer_corrections(events, self._year + self._yearmod)
         else:
             jets, met = events.Jet, events.MET
+            
+        # check that jets does not overlap with our selected leptons (metric_table default metric is delta_r)
+        jet_lepton_dr_mask = ak.all(jets.metric_table(leptons) > 0.4, axis=-1)
+        
+        # select good bjets
         good_bjets = (
             (jets.pt >= 20)
             & (jets.jetId == 6)
             & (jets.puId == 7)
             & (jets.btagDeepFlavB > self._btagDeepFlavB)
             & (np.abs(jets.eta) < 2.4)
+            & (jet_lepton_dr_mask)
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
         candidatebjet = ak.firsts(jets[good_bjets])
@@ -322,10 +331,6 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         ele_bjet_mass = (electrons + candidatebjet).mass
         mu_bjet_dr = candidatebjet.delta_r(muons)
         mu_bjet_mass = (muons + candidatebjet).mass
-        
-        combination_all_bjet_electron=ak.cartesian([jets, electrons]) 
-        bjetr,electronr = ak.unzip(combination_all_bjet_electron)
-        delta_r_all=bjetr.delta_r(electronr)
 
         # lepton-MET transverse mass
         ele_met_tranverse_mass = np.sqrt(
@@ -352,12 +357,13 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         # Lepton-Met delta phi
         muon_met_delta_phi = np.abs(muons.delta_phi(met))
 
-        # weights
+        # add weights to the weight container Weights
         self.weights = Weights(nevents, storeIndividual=True)
         if self.is_mc:
-            # genweight
-            self.output["sumw"] = ak.sum(events.genWeight)
-            self.weights.add("genweight", events.genWeight)
+            # generation weigth (gen_weight) and number of gen weighted events
+            gen_weight = events.genWeight
+            self.weights.add("genweight", gen_weight)
+            self.output["sumw"] = ak.sum(gen_weight)
             # L1prefiring
             if self._year in ("2016", "2017"):
                 self.weights.add(
@@ -373,7 +379,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 mod=self._yearmod,
                 nPU=ak.to_numpy(events.Pileup.nPU),
             )
-            # b-tagging
+            # add btagging weights using the deepJet tagger and the medium working point
             btag_corrector = BTagCorrector(
                 wp="M", tagger="deepJet", year=self._year, mod=self._yearmod
             )
@@ -428,22 +434,15 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         self.selections = PackedSelection()
         self.selections.add("lumi", lumi_mask)
         self.selections.add("metfilters", metfilters)
-        if self._channel == "ele":
-            self.selections.add("trigger_ele", trigger["ele"])
-            self.selections.add("good_electron", n_good_electrons == 1)
-            self.selections.add("good_muon", n_good_muons == 0)
-        elif self._channel == "mu":
-            self.selections.add("trigger_mu", trigger["mu"])
-            self.selections.add("good_electron", n_good_electrons == 0)
-            self.selections.add("good_muon", n_good_muons == 1)
-        self.selections.add("deltaR", ak.any(mu_bjet_dr > 0.4, axis=1))
-        self.selections.add("good_tau", n_good_taus == 0)
-        self.selections.add("met_pt", met.pt > 50)
+        self.selections.add("trigger_ele", trigger["ele"])
+        self.selections.add("trigger_mu", trigger["mu"])
+        self.selections.add("one_electron", n_good_electrons == 1)
+        self.selections.add("electron_veto", n_good_electrons == 0)
+        self.selections.add("one_muon", n_good_muons == 1)
+        self.selections.add("muon_veto", n_good_muons == 0)
+        self.selections.add("tau_veto", n_good_taus == 0)
         self.selections.add("two_bjets", n_good_bjets == 2)
-        # self.selections.add(
-        #    "delta_phi", ak.any(np.abs(muons.delta_phi(met)) > 2, axis=1)
-        # )
-        self.selections.add("ele_bjet_dr", ak.all(delta_r_all > 0.4,axis=1))
+        self.selections.add("met_pt", met.pt > 50)
         
         # regions
         regions = {
@@ -451,24 +450,21 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 "lumi",
                 "metfilters",
                 "trigger_ele",
-                "ele_bjet_dr",
                 "met_pt",
                 "two_bjets",
-                "good_tau",
-                "good_muon",
-                "good_electron",
+                "tau_veto",
+                "muon_veto",
+                "one_electron",
             ],
             "mu": [
                 "lumi",
                 "metfilters",
                 "trigger_mu",
-                "deltaR",
-                # "delta_phi",
                 "met_pt",
                 "two_bjets",
-                "good_tau",
-                "good_electron",
-                "good_muon",
+                "tau_veto",
+                "electron_veto",
+                "one_muon",
             ],
         }
 
