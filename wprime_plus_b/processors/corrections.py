@@ -222,7 +222,7 @@ class BTagCorrector:
 
         # add nominal weight
         weights.add(name="bc_btag", weight=bc_jets_weight)
-        weights.add(name="light_btag", weight=bc_jets_weight)
+        #weights.add(name="light_btag", weight=bc_jets_weight)
         
 
 
