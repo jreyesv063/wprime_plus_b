@@ -19,7 +19,7 @@ from .corrections import (
 )
 
 
-class TTbarControlRegionProcessor(processor.ProcessorABC):
+class TTbarCR1Processor(processor.ProcessorABC):
     def __init__(
         self,
         year: str = "2017",
@@ -30,20 +30,19 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         self._yearmod = yearmod
         self._channel = channel
 
-        # open triggers
+        # open and load triggers
         with open("wprime_plus_b/data/triggers.json", "r") as f:
             self._triggers = json.load(f)[self._year]
-        # open btagDeepFlavB
+        # open and load btagDeepFlavB working points
         with open("wprime_plus_b/data/btagDeepFlavB.json", "r") as f:
             self._btagDeepFlavB = json.load(f)[self._year]
-        # open met filters
-        # https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
+        # open and load met filters
         with open("wprime_plus_b/data/metfilters.json", "rb") as handle:
             self._metfilters = json.load(handle)[self._year]
-        # open lumi masks
+        # open and load lumi masks
         with open("wprime_plus_b/data/lumi_masks.pkl", "rb") as handle:
             self._lumi_mask = pickle.load(handle)
-        
+            
         # define the output accumulator
         self.make_output = lambda: {
             "sumw": 0,
@@ -55,9 +54,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                     name="jet_pt",
                     label=r"bJet $p_T$ [GeV]",
                 ),
-                hist.axis.Regular(
-                    50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"
-                ),
+                hist.axis.Regular(50, -2.4, 2.4, name="jet_eta", label="bJet $\eta$"),
                 hist.axis.Regular(50, -4.0, 4.0, name="jet_phi"),
                 hist.storage.Weight(),
             ),
@@ -84,9 +81,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 hist.axis.Regular(
                     50, -2.4, 2.4, name="lepton_eta", label="lepton $\eta$"
                 ),
-                hist.axis.Regular(
-                    50, -4.0, 4.0, name="lepton_phi", label="lepton phi"
-                ),
+                hist.axis.Regular(50, -4.0, 4.0, name="lepton_phi", label="lepton phi"),
                 hist.storage.Weight(),
             ),
             "lepton_bjet_kin": hist.Hist(
@@ -130,21 +125,21 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         return self._accumulator
 
     def process(self, events):
-        # set output accumulator
-        self.output = self.make_output()
-        
         # get dataset name from metadata
         dataset = events.metadata["dataset"]
         
+        # set output accumulator
+        self.output = self.make_output()
+
         # save number of events
         nevents = len(events)
         self.output["cutflow"]["nevents"] = nevents
-        
+
         # check if sample is MC
         self.is_mc = hasattr(events, "genWeight")
-        
+
         # ------------------
-        # EVENT PRESELECTION
+        # event preselection
         # ------------------
         # select good electrons
         good_electron_pt = 55 if self._channel == "ele" else 30
@@ -168,7 +163,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         )
         n_good_electrons = ak.sum(good_electrons, axis=1)
         electrons = events.Electron[good_electrons]
-        
+
         # select good muons
         good_muons = (
             (events.Muon.pt >= 35)
@@ -182,7 +177,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         )
         n_good_muons = ak.sum(good_muons, axis=1)
         muons = events.Muon[good_muons]
-        
+
         # select good taus
         good_taus = (
             (events.Tau.idDeepTau2017v2p1VSjet > 8)
@@ -194,14 +189,15 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         )
         n_good_taus = ak.sum(good_taus, axis=1)
         taus = events.Tau[good_taus]
-        
+
         # apply JEC/JER corrections to MC jets (propagate corrections to MET)
         # in data, the corrections are already applied
         if self.is_mc:
-            corrected_jets, met = get_jec_jer_corrections(events, self._year + self._yearmod)
+            corrected_jets, met = get_jec_jer_corrections(
+                events, self._year + self._yearmod
+            )
         else:
             corrected_jets, met = events.Jet, events.MET
-            
         # select good bjets
         good_bjets = (
             (corrected_jets.pt >= 20)
@@ -212,7 +208,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
         bjets = corrected_jets[good_bjets]
-        
+
         # apply MET phi corrections
         met_pt, met_phi = get_met_corrections(
             year=self._year,
@@ -223,57 +219,56 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             mod=self._yearmod,
         )
         met["pt"], met["phi"] = met_pt, met_phi
-        
+
         # ---------------
-        # EVENT VARIABLES
+        # event variables
         # ---------------
         # We can define the variables for leptons from just the leading (in pt) lepton
         # since all of our signal and control regions require exactly zero or one of
         # them so there is no ambiguity to resolve.
         leptons = ak.firsts(electrons) if self._channel == "ele" else ak.firsts(muons)
-        
+
         # Some control regions require more than one bjet though, however we will
-        # compute all variables using the leading bjet 
+        # compute all variables using the leading bjet
         leading_bjet = ak.firsts(bjets)
-        
+
         # lepton relative isolation
         lepton_reliso = (
             leptons.pfRelIso04_all
             if hasattr(leptons, "pfRelIso04_all")
             else leptons.pfRelIso03_all
         )
-        # lepton-bjet delta R and invariant mass
+        # lepton-bjet deltaR and invariant mass
         lepton_bjet_dr = leading_bjet.delta_r(leptons)
         lepton_bjet_mass = (leptons + leading_bjet).mass
 
-        # lepton-MET transverse mass
+        # lepton-MET transverse mass and deltaPhi
         lepton_met_tranverse_mass = np.sqrt(
             2.0
             * leptons.pt
             * met.pt
             * (ak.ones_like(met.pt) - np.cos(leptons.delta_phi(met)))
         )
+        lepton_met_delta_phi = np.abs(leptons.delta_phi(met))
+        
         # lepton-bJet-MET total transverse mass
         lepton_total_transverse_mass = np.sqrt(
             (leptons.pt + leading_bjet.pt + met.pt) ** 2
             - (leptons + leading_bjet + met).pt ** 2
         )
-        # Lepton-Met delta phi
-        lepton_met_delta_phi = np.abs(leptons.delta_phi(met))
-        
         # ---------------
-        # EVENT SELECTION
+        # event selection
         # ---------------
         # make a PackedSelection object to manage the event selections easily
         self.selections = PackedSelection()
-        
+
         # add luminosity calibration mask (only to data)
         if not self.is_mc:
             lumi_mask = self._lumi_mask[self._year](events.run, events.luminosityBlock)
         else:
             lumi_mask = np.ones(len(events), dtype="bool")
         self.selections.add("lumi", lumi_mask)
-        
+
         # add MET filters mask
         metfilters = np.ones(nevents, dtype="bool")
         metfilterkey = "mc" if self.is_mc else "data"
@@ -281,7 +276,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             if mf in events.Flag.fields:
                 metfilters = metfilters & events.Flag[mf]
         self.selections.add("metfilters", metfilters)
-        
+
         # add lepton triggers masks
         trigger = {}
         for ch in ["ele", "mu"]:
@@ -291,13 +286,15 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                     trigger[ch] = trigger[ch] | events.HLT[t]
         self.selections.add("trigger_ele", trigger["ele"])
         self.selections.add("trigger_mu", trigger["mu"])
-        
+
         # check that there be a minimum MET greater than 50 GeV
         self.selections.add("met_pt", met.pt > 50)
-        
-        # check that the bjets does not overlap with our selected leptons 
-        self.selections.add("lepton_bjet_dr", ak.all(bjets.delta_r(leptons) > 0.4, axis=1))
-        
+
+        # cross cleaning: check that the bjets does not overlap with our selected leptons
+        self.selections.add(
+            "lepton_bjet_dr", ak.all(bjets.delta_r(leptons) > 0.4, axis=1)
+        )
+
         # add number of leptons and bjets
         self.selections.add("two_bjets", n_good_bjets == 2)
         self.selections.add("one_electron", n_good_electrons == 1)
@@ -305,9 +302,44 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
         self.selections.add("one_muon", n_good_muons == 1)
         self.selections.add("muon_veto", n_good_muons == 0)
         self.selections.add("tau_veto", n_good_taus == 0)
-        
+
+        # define selection regions for each channel
+        regions = {
+            "ele": [
+                "lumi",
+                "metfilters",
+                "trigger_ele",
+                "met_pt",
+                "two_bjets",
+                "tau_veto",
+                "muon_veto",
+                "one_electron",
+                "lepton_bjet_dr",
+            ],
+            "mu": [
+                "lumi",
+                "metfilters",
+                "trigger_mu",
+                "met_pt",
+                "two_bjets",
+                "tau_veto",
+                "electron_veto",
+                "one_muon",
+                "lepton_bjet_dr",
+            ],
+        }
+        # check how many events pass each selection
+        cutflow_selections = []
+        for selection in regions[self._channel]:
+            cutflow_selections.append(selection)
+            cutflow_cut = self.selections.all(*cutflow_selections)
+            self.output["cutflow"][selection] = np.sum(cutflow_cut)
+            if self.is_mc:
+                self.output["weighted_cutflow"][selection] = np.sum(
+                    events.genWeight[cutflow_cut]
+                )
         # -------------
-        # EVENT WEIGHTS
+        # event weights
         # -------------
         # define weights container
         self.weights = Weights(nevents, storeIndividual=True)
@@ -316,6 +348,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             gen_weight = events.genWeight
             self.weights.add("genweight", gen_weight)
             self.output["sumw"] = ak.sum(gen_weight)
+            
             # add L1prefiring weights
             if self._year in ("2016", "2017"):
                 self.weights.add(
@@ -351,7 +384,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 year=self._year,
                 mod=self._yearmod,
             )
-            
+
             if self._channel == "ele":
                 # add electron trigger weights
                 add_electronTrigger_weight(
@@ -387,52 +420,17 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
                 )
         # get weight statistics
         weight_statistics = self.weights.weightStatistics
-        
-        # -----------------       
-        # HISTOGRAM FILLING
-        # -----------------     
-        # define selection regions for each channel
-        regions = {
-            "ele": [
-                "lumi",
-                "metfilters",
-                "trigger_ele",
-                "met_pt",
-                "two_bjets",
-                "tau_veto",
-                "muon_veto",
-                "one_electron",
-                "lepton_bjet_dr"
-            ],
-            "mu": [
-                "lumi",
-                "metfilters",
-                "trigger_mu",
-                "met_pt",
-                "two_bjets",
-                "tau_veto",
-                "electron_veto",
-                "one_muon",
-                "lepton_bjet_dr"
-            ],
-        }
+
+        # -----------------
+        # histogram filling
+        # -----------------
         # combine all region selections into a single mask
         selections = regions[self._channel]
         cut = self.selections.all(*selections)
-        
-        # check how many events pass each selection 
-        cutflow_selections = []
-        for selection in selections:
-            cutflow_selections.append(selection)
-            cutflow_cut = self.selections.all(*cutflow_selections)
-            self.output["cutflow"][selection] = np.sum(cutflow_cut)
-            if self.is_mc:
-                gen_weight = self.weights.partial_weight(["genweight"])
-                self.output["weighted_cutflow"][selection] = np.sum(gen_weight[cutflow_cut])
-        
-        # weight from the weights container
+
+        # get total weight from the weights container
         region_weight = self.weights.weight()[cut]
-        
+
         # fill histograms
         self.output["jet_kin"].fill(
             jet_pt=normalize(leading_bjet.pt, cut),
@@ -466,7 +464,7 @@ class TTbarControlRegionProcessor(processor.ProcessorABC):
             lepton_total_transverse_mass=normalize(lepton_total_transverse_mass, cut),
             weight=region_weight,
         )
-        
+
         return {
             dataset: self.output,
             "weight_statistics": weight_statistics,

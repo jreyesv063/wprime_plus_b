@@ -9,13 +9,13 @@ from dask.distributed import Client
 from distributed.diagnostics.plugin import UploadDirectory
 from wprime_plus_b.processors.candle_processor import CandleProcessor
 from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
-from wprime_plus_b.processors.ttbar_processor import TTbarControlRegionProcessor
+from wprime_plus_b.processors.ttbar_processor import TTbarCR1Processor
 from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
 from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
 
 
 def main(args):
-    # load and process fileset
+    # load and process filesets
     fileset = {}
     with open(args.fileset, "r") as handle:
         data = json.load(handle)
@@ -25,7 +25,7 @@ def main(args):
         fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
     # define processors
     processors = {
-        "ttbar": TTbarControlRegionProcessor,
+        "ttbar": TTbarCR1Processor,
         "trigger": TriggerEfficiencyProcessor,
         "signal": SignalRegionProcessor,
         "candle": CandleProcessor,
