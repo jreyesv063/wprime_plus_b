@@ -98,8 +98,8 @@ if __name__ == "__main__":
         "--processor",
         dest="processor",
         type=str,
-        default="ttbar",
-        help="processor to be used {trigger, ttbar, candle, btag_eff}",
+        default="ttbar_cr1",
+        help="processor to be used {trigger, ttbar_cr1, ttbar_cr2, candle, btag_eff}",
     )
     parser.add_argument(
         "--executor",

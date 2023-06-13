@@ -111,21 +111,91 @@ The reference and main triggers, alongside the selection criteria applied to est
 | $N(e) = 1$                       |
 
 
-### [TTBar Control Region Processor](processors/ttbar_processor.py) 
+### [First Control Region Processor](processors/ttbar_processor.py) 
 
 Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
 
-The processor applies the following pre-selection cuts
+The processor applies the following pre-selection cuts for the electron (ele) and muon (mu) channels:
 
 | $$\textbf{Object}$$    | $$\textbf{Variable}$$          | $$\textbf{Cut}$$                                                    | 
 | ---------------------  | ------------------------------ | ------------------------------------------------------------------- |
-| $$\textbf{Electrons}$$ |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30$ GeV                                        |
+| $$\textbf{Electrons}$$ |                                |                                       |
+|                        | $p_T$                        | $\geq 55$ GeV (ele)  $\geq 30$ GeV (mu)                                        |
 |                        | $\eta$                       | $\| \eta \| < 1.44$ and $1.57 < \| \eta \| < 2.5$       |
 |                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
 |                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
 |                        | $p_T$                        | $\geq 35$ GeV                                         |
+|                        | $\eta$                       | $\lt 2.4$                                                 |
+|                        | pfRelIso04_all               | $\lt 0.25$                                                        |
+|                        | tightId                      | $\text{True}$                   |
+| $$\textbf{Taus}$$      |                                |                                                                     |
+|                        | $p_T$                        | $\geq 20$ GeV                                               |
+|                        | $\eta$                       | $\lt 2.3$                                                 |
+|                        | $dz$                         | $\lt 0.2$                                                        | 
+|                        | idDeepTau2017v2p1VSjet       | $\gt 8$                                                           |
+|                        | idDeepTau2017v2p1VSe         | $\gt 8$                                                           |
+|                        | idDeepTau2017v2p1VSmu        | $\gt 1$                                                           |
+| $$\textbf{Jets}$$      |                                |                                                                     |
+|                        | $p_T$                        |  $\geq 20$ GeV                                            |
+|                        | $\eta$                       | $\lt 2.4$                                                 |
+|                        | JetId                        | $6$                                                               |
+|                        | puId                          | $7$                                                               |
+|                        | btagDeepFlavB                | $\gt$ Medium WP                                          |
+
+
+
+
+and additional selection cuts for each channel:
+
+#### Electron channel
+
+| Selection cuts      | 
+| ---------------------------------|
+| Electron Trigger      |
+| Luminosity calibration                  |
+| MET filters           |
+| $p_T^{miss}\gt 50$ GeV |
+| $N(bjet) = 2$                  |
+| $N(\tau) = 0$                  |
+| $N(\mu) = 0$                   |
+| $N(e) = 1$                    |
+| $\Delta R (e, bjet_0) \gt 0.4$ |
+
+expected to be run with the `SingleElectron` dataset.
+
+#### Muon channel
+
+
+| Selection cuts      | 
+| ---------------------------------|
+| Muon Trigger          |
+| Luminosity calibration                  |
+| MET filters           |
+| $p_T^{miss}\gt 50$ GeV |
+| $N(bjet) = 2$                  |
+| $N(\tau) = 0$                  |
+| $N(e) = 0$                     |
+| $N(\mu) = 1$                   |
+| $\Delta R (\mu, bjet_0) \gt 0.4$ |
+
+expected to be run with the `SingleMuon` dataset.
+
+### [Second Control Region Processor](processors/ttbar_processor.py) 
+
+Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
+
+The processor applies the following pre-selection cuts for the electron (ele) and muon (mu) channels:
+
+| $$\textbf{Object}$$    | $$\textbf{Variable}$$          | $$\textbf{Cut}$$                                                    | 
+| ---------------------  | ------------------------------ | ------------------------------------------------------------------- |
+| $$\textbf{Electrons}$$ |                                |                                       |
+|                        | $p_T$                        | $\geq 55$ GeV (mu)  $\geq 30$ GeV (ele)                                        |
+|                        | $\eta$                       | $\| \eta \| < 1.44$ and $1.57 < \| \eta \| < 2.5$       |
+|                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
+|                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
+| $$\textbf{Muons}$$     |                                |                                                                     |
+|                        | $p_T$                        | $\geq 30$ GeV                                         |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | pfRelIso04_all               | $\lt 0.25$                                                        |
 |                        | tightId                      | $\text{True}$                   |
@@ -151,34 +221,34 @@ and additional selection cuts for each channel:
 
 | Selection cuts      | 
 | ---------------------------------|
-| Electron Trigger      |
+| Muon Trigger      |
 | Luminosity calibration                  |
 | MET filters           |
 | $p_T^{miss}\gt 50$ GeV |
-| $N(bjet) = 2$                  |
+| $N(bjet) = 1$                  |
 | $N(\tau) = 0$                  |
-| $N(\mu) = 0$                   |
+| $N(\mu) = 1$                   |
 | $N(e) = 1$                    |
+| $\Delta R (e, bjet_0) \gt 0.4$ |
 
-
-
+expected to be run with the `SingleMuon` dataset.
 
 #### Muon channel
 
 
 | Selection cuts      | 
 | ---------------------------------|
-| Muon Trigger          |
+| Electron Trigger          |
 | Luminosity calibration                  |
 | MET filters           |
-| $\Delta R (\mu, bjets) \gt 0.4$ |
 | $p_T^{miss}\gt 50$ GeV |
-| $N(bjet) = 2$                  |
+| $N(bjet) = 1$                  |
 | $N(\tau) = 0$                  |
-| $N(e) = 0$                     |
+| $N(e) = 1$                     |
 | $N(\mu) = 1$                   |
+| $\Delta R (\mu, bjet_0) \gt 0.4$ |
 
-
+expected to be run with the `SingleElectron` dataset.
 
 ## How to run
 
@@ -199,7 +269,7 @@ optional arguments:
   --redirector REDIRECTOR
                         redirector to find CMS datasets {use 'xcache' at coffea-casa. use 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus} (default xcache)
   --processor PROCESSOR
-                        processor to be used {trigger, ttbar, candle, btag_eff} (default ttbar)
+                        processor to be used {trigger, ttbar_cr1, ttbar_cr2, candle, btag_eff} (default ttbar_cr1)
   --executor EXECUTOR   executor to be used {iterative, futures, dask} (default iterative)
   --workers WORKERS     number of workers to use with futures executor (default 4)
   --year YEAR           year of the data {2016, 2017, 2018} (default 2017)
@@ -212,7 +282,7 @@ optional arguments:
   --tag TAG             tag of the submitted jobs (default test)
   --eos EOS             wheter to copy or not output files to EOS (default False)
 ```
-By running this script, a desired processor is executed at some facility, defined by the `--facility` flag. [Coffea-Casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) is faster and more convenient, however still somewhat experimental so for large inputs and/or processors which may require heavier cpu/memory using HTCondor at lxplus is recommended (click [here](https://batchdocs.web.cern.ch/local/quick.html) for more info). 
+By running this script, a desired processor is executed at some facility, defined by the `--facility` flag. [Coffea-Casa](https://coffea-casa.readthedocs.io/en/latest/cc_user.html) is faster and more convenient, however still somewhat experimental so for large inputs and/or processors which may require heavier cpu/memory using HTCondor at lxplus is recommended. 
 
 You can select the executor to run the processor using the `--executor` flag. Three executors are available: `iterative`, `futures`, and `dask`. The `iterative` executor uses a single worker, while the `futures` executor uses the number of workers specified by the `--workers` flag. The `dask` executor uses Dask functionalities to scale up the analysis (only available at coffea-casa).
 
@@ -252,16 +322,16 @@ When you attempt to open a CMS file, your application must query a redirector (d
 
 ### Submitting jobs at Coffea-Casa
 
-Let's assume we are using coffea-casa and we want to execute the `ttbar` processor for the electron channel using the `TTTo2L2Nu` sample from 2017. To test locally first, can do e.g.:
+Let's assume we are using coffea-casa and we want to execute the `ttbar_cr1` processor for the electron channel using the `TTTo2L2Nu` sample from 2017. To test locally first, can do e.g.:
 
 ```bash
-python3 submit.py --processor ttbar --executor iterative --channel ele --sample TTTo2L2Nu --nfiles 1 --tag test
+python3 submit.py --processor ttbar_cr1 --executor iterative --channel ele --sample TTTo2L2Nu --nfiles 1 --tag test
 ```
 
 To scale up the analysis using Dask, first you need to define your Dask client inside the `submit/submit_coffea_casa.py` script (line 37), and then type:
 
 ```bash
-python3 submit.py --processor ttbar --executor dask --channel ele --sample TTTo2L2Nu --nfiles -1 --nsplit 5 --tag test
+python3 submit.py --processor ttbar_cr1 --executor dask --channel ele --sample TTTo2L2Nu --nfiles -1 --nsplit 5 --tag test
 ```
 The results will be stored in the `/outfiles` folder
 
@@ -273,9 +343,9 @@ voms-proxy-init --voms cms
 ```
 To execute a processor using all samples of a particular year type:
 ```bash
-python3 submit.py --processor ttbar --facility lxplus --redirector cmsxrootd.fnal.gov --channel ele --sample all --year 2017 --nfiles -1 --nsplit 5 --tag test --eos True
+python3 submit.py --processor ttbar_cr1 --facility lxplus --redirector cmsxrootd.fnal.gov --channel ele --sample all --year 2017 --nfiles -1 --nsplit 5 --tag test --eos True
 ```
-The script will create the condor and executable files (using the `submit.sub` and `submit.sh` templates) needed to submit jobs, as well as the folders containing the logs and outputs (within the `/condor` folder). After submitting the jobs, you can watch their status typing
+The script will create the condor and executable files (using the `submit.sub` and `submit.sh` templates) needed to submit jobs, as well as the folders containing the logs and outputs within the `/condor` folder (click [here](https://batchdocs.web.cern.ch/local/quick.html) for more info). After submitting the jobs, you can watch their status typing
 ```bash
 watch condor_q
 ```
