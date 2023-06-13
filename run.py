@@ -9,7 +9,7 @@ from dask.distributed import Client
 from distributed.diagnostics.plugin import UploadDirectory
 from wprime_plus_b.processors.candle_processor import CandleProcessor
 from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
-from wprime_plus_b.processors.ttbar_processor import TTbarCR1Processor
+from wprime_plus_b.processors.ttbar_cr1_processor import TTbarCR1Processor
 from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
 from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
 
