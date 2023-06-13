@@ -10,6 +10,7 @@ from distributed.diagnostics.plugin import UploadDirectory
 from wprime_plus_b.processors.candle_processor import CandleProcessor
 from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
 from wprime_plus_b.processors.ttbar_cr1_processor import TTbarCR1Processor
+from wprime_plus_b.processors.ttbar_cr2_processor import TTbarCR2Processor
 from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
 from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
 
@@ -25,7 +26,8 @@ def main(args):
         fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
     # define processors
     processors = {
-        "ttbar": TTbarCR1Processor,
+        "ttbar_cr1": TTbarCR1Processor,
+        "ttbar_cr2": TTbarCR2Processor,
         "trigger": TriggerEfficiencyProcessor,
         "signal": SignalRegionProcessor,
         "candle": CandleProcessor,
