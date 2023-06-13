@@ -10,7 +10,8 @@ Python package for analyzing W' + b in the electron and muon channels. The analy
 
 - [Processors](#Processors)
     * [Trigger Efficiency Processor](#Trigger-Efficiency-Processor)
-    * [TTBar Control Region Processor](#TTBar-Control-Region-Processor)
+    * [First Control Region Processor](#First-Control-Region-Processor)
+    * [Second Control Region Processor](#second-Control-Region-Processor)
 - [How to run](#How-to-run)
     * [Submitting jobs at Coffea-Casa](#Submitting-jobs-at-Coffea-Casa)
     * [Submitting condor jobs at lxplus](#Submitting-condor-jobs-at-lxplus)
@@ -111,7 +112,7 @@ The reference and main triggers, alongside the selection criteria applied to est
 | $N(e) = 1$                       |
 
 
-### [First Control Region Processor](processors/ttbar_processor.py) 
+### [First Control Region Processor](processors/ttbar_cr1_processor.py) 
 
 Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
 
@@ -181,7 +182,7 @@ expected to be run with the `SingleElectron` dataset.
 
 expected to be run with the `SingleMuon` dataset.
 
-### [Second Control Region Processor](processors/ttbar_processor.py) 
+### [Second Control Region Processor](processors/ttbar_cr2_processor.py) 
 
 Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
 
