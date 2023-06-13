@@ -40,8 +40,18 @@ def run_coffea_casa(args):
     filesets = get_filesets(args.fileset, args.sample, args.year, args.nsplit)
 
     # submit jobs
-    for sample, fileset in filesets.items():
-        print(f"Processing {sample}")
-        os.system(
-            f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
-        )
+    if len(args.nsample) == 0:
+        for sample, fileset in filesets.items():
+            print(f"Processing {sample}")
+            os.system(
+                f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
+            )
+    else:
+        for sample, fileset in filesets.items():
+            for n in args.nsample:
+                if f"_{n}" in sample:
+                    print(f"Processing {sample}")
+                    os.system(
+                        f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
+                    )
+                    

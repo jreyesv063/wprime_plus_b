@@ -113,4 +113,11 @@ if __name__ == "__main__":
         default=False,
         help="wheter to copy or not output files to EOS (default False)",
     )
+    parser.add_argument(
+        "--nsample",
+        dest="nsample",
+        type=list,
+        default=[],
+        help="nsample",
+    )
     main(parser.parse_args())
