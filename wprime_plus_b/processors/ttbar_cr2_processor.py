@@ -166,7 +166,7 @@ class TTbarCR2Processor(processor.ProcessorABC):
 
         # select good muons
         good_muons = (
-            (events.Muon.pt >= 30)
+            (events.Muon.pt >= 35)
             & (np.abs(events.Muon.eta) < 2.4)
             & (events.Muon.tightId)
             & (
@@ -293,7 +293,10 @@ class TTbarCR2Processor(processor.ProcessorABC):
 
         # cross cleaning: check that bjets does not overlap with our selected leptons
         self.selections.add(
-            "lepton_bjet_dr", ak.all(bjets.delta_r(leptons) > 0.4, axis=1)
+            "electron_bjet_dr", ak.all(bjets.delta_r(ak.firsts(electrons)) > 0.4, axis=1)
+        )
+        self.selections.add(
+            "muon_bjet_dr", ak.all(bjets.delta_r(ak.firsts(muons)) > 0.4, axis=1)
         )
         # add number of leptons and bjets
         self.selections.add("one_bjet", n_good_bjets == 1)
@@ -312,7 +315,8 @@ class TTbarCR2Processor(processor.ProcessorABC):
                 "tau_veto",
                 "one_muon",
                 "one_electron",
-                "lepton_bjet_dr",
+                "muon_bjet_dr",
+                "electron_bjet_dr"
             ],
             "mu": [
                 "lumi",
@@ -323,7 +327,8 @@ class TTbarCR2Processor(processor.ProcessorABC):
                 "tau_veto",
                 "one_electron",
                 "one_muon",
-                "lepton_bjet_dr",
+                "muon_bjet_dr",
+                "electron_bjet_dr"
             ],
         }
         # check how many events pass each selection
