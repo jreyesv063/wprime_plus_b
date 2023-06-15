@@ -291,12 +291,17 @@ class TTbarCR2Processor(processor.ProcessorABC):
         # check that there be a minimum MET greater than 50 GeV
         self.selections.add("met_pt", met.pt > 50)
 
-        # cross cleaning: check that bjets does not overlap with our selected leptons
+        # cross cleaning 
+        # check that bjets does not overlap with our selected leptons
         self.selections.add(
-            "electron_bjet_dr", ak.all(bjets.delta_r(ak.firsts(electrons)) > 0.4, axis=1)
+            "electron_bjet_dr", leading_bjet.delta_r(ak.firsts(electrons)) > 0.4
         )
         self.selections.add(
-            "muon_bjet_dr", ak.all(bjets.delta_r(ak.firsts(muons)) > 0.4, axis=1)
+            "muon_bjet_dr", leading_bjet.delta_r(ak.firsts(muons)) > 0.4
+        )
+        # check that selected leptons does not overlap
+        self.selections.add(
+            "electron_muon_dr", ak.firsts(electrons).delta_r(ak.firsts(muons)) > 0.4
         )
         # add number of leptons and bjets
         self.selections.add("one_bjet", n_good_bjets == 1)
@@ -316,7 +321,8 @@ class TTbarCR2Processor(processor.ProcessorABC):
                 "one_muon",
                 "one_electron",
                 "muon_bjet_dr",
-                "electron_bjet_dr"
+                "electron_bjet_dr",
+                "electron_muon_dr"
             ],
             "mu": [
                 "lumi",
@@ -328,7 +334,8 @@ class TTbarCR2Processor(processor.ProcessorABC):
                 "one_electron",
                 "one_muon",
                 "muon_bjet_dr",
-                "electron_bjet_dr"
+                "electron_bjet_dr",
+                "electron_muon_dr"
             ],
         }
         # check how many events pass each selection
