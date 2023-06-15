@@ -9,9 +9,9 @@
 Python package for analyzing W' + b in the electron and muon channels. The analysis uses a columnar framework to process input tree-based [NanoAOD](https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookNanoAOD) files using the [coffea](https://coffeateam.github.io/coffea/) and [scikit-hep](https://scikit-hep.org) Python libraries.
 
 - [Processors](#Processors)
-    * [Trigger Efficiency Processor](#Trigger-Efficiency-Processor)
-    * [First Control Region Processor](#First-Control-Region-Processor)
-    * [Second Control Region Processor](#second-Control-Region-Processor)
+    * [Trigger efficiency erocessor](#Trigger-efficiency-processor)
+    * [First tt control region processor](#First-tt-control-region-processor)
+    * [Second tt control region processor](#Second-tt-control-region-processor)
 - [How to run](#How-to-run)
     * [Submitting jobs at Coffea-Casa](#Submitting-jobs-at-Coffea-Casa)
     * [Submitting condor jobs at lxplus](#Submitting-condor-jobs-at-lxplus)
@@ -23,9 +23,7 @@ Python package for analyzing W' + b in the electron and muon channels. The analy
 
 ## Processors
 
-The processor object is where all of the analysis is defined. Here we define two processors:
-
-### [Trigger Efficiency Processor](processors/trigger_efficiency_processor.py) 
+### [Trigger efficiency](processors/trigger_efficiency_processor.py) 
 
 Processor use to compute trigger efficiencies. 
 
@@ -112,7 +110,7 @@ The reference and main triggers, alongside the selection criteria applied to est
 | $N(e) = 1$                       |
 
 
-### [First Control Region Processor](processors/ttbar_cr1_processor.py) 
+### [First tt control region](processors/ttbar_cr1_processor.py) 
 
 Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
 
@@ -182,7 +180,7 @@ expected to be run with the `SingleElectron` dataset.
 
 expected to be run with the `SingleMuon` dataset.
 
-### [Second Control Region Processor](processors/ttbar_cr2_processor.py) 
+### [Second tt control region](processors/ttbar_cr2_processor.py) 
 
 Processor use to estimate backgrounds in a $t\bar{t}$ control region. 
 
