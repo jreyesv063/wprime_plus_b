@@ -196,7 +196,7 @@ The processor applies the following pre-selection cuts for the electron (ele) an
 |                        | pfRelIso04_all                 | $\lt 0.25$                                                        |
 |                        | mvaFall17V2Iso_WP80 (ele) mvaFall17V2Iso_WP90 (mu) | $\text{True}$|
 | $$\textbf{Muons}$$     |                                |                                                                     |
-|                        | $p_T$                        | $\geq 30$ GeV                                         |
+|                        | $p_T$                        | $\geq 35$ GeV                                         |
 |                        | $\eta$                       | $\lt 2.4$                                                 |
 |                        | pfRelIso04_all               | $\lt 0.25$                                                        |
 |                        | tightId                      | $\text{True}$                   |
@@ -231,6 +231,7 @@ and additional selection cuts for each channel:
 | $N(\mu) = 1$                   |
 | $N(e) = 1$                    |
 | $\Delta R (e, bjet_0) \gt 0.4$ |
+| $\Delta R (\mu, bjet_0) \gt 0.4$ |
 
 expected to be run with the `SingleMuon` dataset.
 
@@ -248,6 +249,7 @@ expected to be run with the `SingleMuon` dataset.
 | $N(e) = 1$                     |
 | $N(\mu) = 1$                   |
 | $\Delta R (\mu, bjet_0) \gt 0.4$ |
+| $\Delta R (e, bjet_0) \gt 0.4$ |
 
 expected to be run with the `SingleElectron` dataset.
 
