@@ -388,7 +388,7 @@ class TTbarCR2Processor(processor.ProcessorABC):
                 mod=self._yearmod,
             )
 
-            if self._channel == "ele":
+            if self._channel == "mu":
                 # add electron trigger weights
                 add_electronTrigger_weight(
                     weights=self.weights,
@@ -413,7 +413,7 @@ class TTbarCR2Processor(processor.ProcessorABC):
                 mod=self._yearmod,
                 wp="tight" if self._channel == "ele" else "tight",
             )
-            if self._channel == "mu":
+            if self._channel == "ele":
                 # add muon trigger weights
                 add_muonTriggerIso_weight(
                     weights=self.weights,
