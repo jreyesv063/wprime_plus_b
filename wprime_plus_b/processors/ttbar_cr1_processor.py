@@ -230,7 +230,8 @@ class TTbarCR1Processor(processor.ProcessorABC):
 
         # Some control regions require more than one bjet though, however we will
         # compute all variables using the leading bjet
-        leading_bjet = ak.firsts(bjets)
+        leading_bjets = ak.firsts(bjets)
+        subleading_bjets = ak.pad_none(bjets, 2)[:, 1]
 
         # lepton relative isolation
         lepton_reliso = (
@@ -239,8 +240,8 @@ class TTbarCR1Processor(processor.ProcessorABC):
             else leptons.pfRelIso03_all
         )
         # lepton-bjet deltaR and invariant mass
-        lepton_bjet_dr = leading_bjet.delta_r(leptons)
-        lepton_bjet_mass = (leptons + leading_bjet).mass
+        lepton_bjet_dr = leading_bjets.delta_r(leptons)
+        lepton_bjet_mass = (leptons + leading_bjets).mass
 
         # lepton-MET transverse mass and deltaPhi
         lepton_met_tranverse_mass = np.sqrt(
@@ -253,8 +254,8 @@ class TTbarCR1Processor(processor.ProcessorABC):
         
         # lepton-bJet-MET total transverse mass
         lepton_total_transverse_mass = np.sqrt(
-            (leptons.pt + leading_bjet.pt + met.pt) ** 2
-            - (leptons + leading_bjet + met).pt ** 2
+            (leptons.pt + leading_bjets.pt + met.pt) ** 2
+            - (leptons + leading_bjets + met).pt ** 2
         )
         # ---------------
         # event selection
@@ -290,10 +291,10 @@ class TTbarCR1Processor(processor.ProcessorABC):
         # check that there be a minimum MET greater than 50 GeV
         self.selections.add("met_pt", met.pt > 50)
 
-        # cross cleaning: check that bjets does not overlap with our selected leptons
-        self.selections.add(
-            "lepton_bjet_dr", ak.all(bjets.delta_r(leptons) > 0.4, axis=1)
-        )
+        # cross cleaning: check that leading and subleading bjets does not overlap with our selected leptons
+        self.selections.add("lepton_leadingbjet_dr", leading_bjets.delta_r(leptons) > 0.4)
+        self.selections.add("lepton_subleadingbjet_dr", subleading_bjets.delta_r(leptons) > 0.4)
+        
         # add number of leptons and bjets
         self.selections.add("two_bjets", n_good_bjets == 2)
         self.selections.add("one_electron", n_good_electrons == 1)
@@ -313,7 +314,8 @@ class TTbarCR1Processor(processor.ProcessorABC):
                 "tau_veto",
                 "muon_veto",
                 "one_electron",
-                "lepton_bjet_dr",
+                "lepton_leadingbjet_dr",
+                "lepton_subleadingbjet_dr"
             ],
             "mu": [
                 "lumi",
@@ -324,7 +326,8 @@ class TTbarCR1Processor(processor.ProcessorABC):
                 "tau_veto",
                 "electron_veto",
                 "one_muon",
-                "lepton_bjet_dr",
+                "lepton_leadingbjet_dr",
+                "lepton_subleadingbjet_dr"
             ],
         }
         # check how many events pass each selection
@@ -432,9 +435,9 @@ class TTbarCR1Processor(processor.ProcessorABC):
 
         # fill histograms
         self.output["jet_kin"].fill(
-            jet_pt=normalize(leading_bjet.pt, cut),
-            jet_eta=normalize(leading_bjet.eta, cut),
-            jet_phi=normalize(leading_bjet.phi, cut),
+            jet_pt=normalize(leading_bjets.pt, cut),
+            jet_eta=normalize(leading_bjets.eta, cut),
+            jet_phi=normalize(leading_bjets.phi, cut),
             weight=region_weight,
         )
         self.output["met_kin"].fill(
