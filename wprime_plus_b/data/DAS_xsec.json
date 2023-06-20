@@ -24,5 +24,8 @@
     "DYJetsToLL_M-50_HT-2500toInf": 0.003514,
     "WW": 75.95,
     "WZ": 27.59,
-    "ZZ": 12.17 
+    "ZZ": 12.17 ,
+    "VBFHToWWTo2L2Nu": 3.879,
+    "VBFHToWWToLNuQQ": 3.892,
+    "GluGluHToWWToLNuQQ": 28.8
 }
