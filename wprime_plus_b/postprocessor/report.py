@@ -9,7 +9,7 @@ def build_report(
     build report with expected number of events and statistical
     errors for bkgs, data, total bkg, and data/total bkg
     """
-    mcs = ["DYJetsToLL", "WJetsToLNu", "VV", "tt", "SingleTop"]
+    mcs = ["DYJetsToLL", "WJetsToLNu", "VV", "tt", "SingleTop", "Higgs"]
     events = {sample: 0 for sample in mcs}
     events.update({"Data": 0})
     errors = events.copy()
@@ -38,15 +38,18 @@ def build_report(
         elif "WJetsToLNu" in sample:
             events["WJetsToLNu"] += n_phys
             errors["WJetsToLNu"] += error
-        elif ("WW" in sample) or ("WZ" in sample) or ("ZZ" in sample):
+        elif (sample == "WW") or (sample == "WZ") or (sample == "ZZ"):
             events["VV"] += n_phys
             errors["VV"] += error
         elif "TTT" in sample:
             events["tt"] += n_phys
             errors["tt"] += error
-        else:
+        elif "ST" in sample:
             events["SingleTop"] += n_phys
             errors["SingleTop"] += error
+        elif ("VBFH" in sample) or ("GluGluH" in sample):
+            events["Higgs"] += n_phys
+            errors["Higgs"] += error
             
     # add number of expected events and errors to report
     report_df = pd.DataFrame(columns=["events", "percentage", "error"])
