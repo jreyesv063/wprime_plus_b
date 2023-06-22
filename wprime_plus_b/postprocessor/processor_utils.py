@@ -14,7 +14,7 @@ def open_output(output_fname: str) -> dict:
 
 def group_outputs(output_directory: str) -> dict:
     """group output .pkl files by sample"""
-    output_files = glob.glob(f"{output_directory}/**/*.pkl", recursive=True)
+    output_files = glob.glob(f"{output_directory}/*.pkl", recursive=True)
     grouped_outputs = {}
     for output_file in output_files:
         # get output file names
