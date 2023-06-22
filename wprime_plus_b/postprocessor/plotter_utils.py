@@ -237,10 +237,11 @@ def plot_histogram(
     scale = 1.1
     yup = scale * up_limit
     ydown = down_limit - scale * (1 - down_limit)
-    if ydown > 1:
-        ydown -= 0.2 * ((ydown + yup) / 2) * ydown
-        if ydown > 1:
-            ydown -= 0.2 * ((ydown + yup) / 2) * ydown
+    
+    up_distance = abs(up_limit - 1)
+    down_distance = abs(down_limit - 1)
+    if up_distance > 2 * down_distance:
+        ydown = 1 - up_distance
             
     # set ratio plot labels, limits and facecolor
     rax.set(
