@@ -129,7 +129,19 @@ def get_mc_error(
     lumi_weights = get_lumiweights(
         accumulated_outputs, xsecs=xsecs, lumi=lumi, weighted=False
     )
-    scaled_histograms = scale_histograms(histograms, lumi_weights)
+    # compute mc error per variable as W_lumi * sqrt(N_mc)
+    mc_errors = {}
+    for sample in histograms:
+        if sample in ["SingleMuon", "SingleElectron"]:
+            continue
+        mc_errors[sample] = {}
+        for kin in histograms[sample]:
+            mc_errors[sample][kin] = {}
+            for var in histograms[sample][kin].axes.name:
+                mc_errors[sample][kin][var] = lumi_weights[sample] * np.sqrt(
+                    histograms[sample][kin].project(var).values()
+                )
+    
     hists = {
         "DYJetsToLL": [],
         "WJetsToLNu": [],
@@ -138,30 +150,26 @@ def get_mc_error(
         "SingleTop": [],
         "Higgs": [],
     }
-    for sample in scaled_histograms:
+    # group mc errors by process
+    for sample in mc_errors:
         if "DYJetsToLL" in sample:
-            hists["DYJetsToLL"].append(scaled_histograms[sample])
+            hists["DYJetsToLL"].append(mc_errors[sample])
         elif "WJetsToLNu" in sample:
-            hists["WJetsToLNu"].append(scaled_histograms[sample])
+            hists["WJetsToLNu"].append(mc_errors[sample])
         elif (sample == "WW") or (sample == "WZ") or (sample == "ZZ"):
-            hists["VV"].append(scaled_histograms[sample])
+            hists["VV"].append(mc_errors[sample])
         elif "TTT" in sample:
-            hists["tt"].append(scaled_histograms[sample])
+            hists["tt"].append(mc_errors[sample])
         elif "ST" in sample:
-            hists["SingleTop"].append(scaled_histograms[sample])
+            hists["SingleTop"].append(mc_errors[sample])
         elif ("VBFH" in sample) or ("GluGluH" in sample):
-            hists["Higgs"].append(scaled_histograms[sample])
+            hists["Higgs"].append(mc_errors[sample])
+    
+    # accumulate mc errors by process
     for sample in hists:
         hists[sample] = processor.accumulate(hists[sample])
-    total_bkg_histograms = processor.accumulate(
-        [histograms[sample] for sample in histograms]
-    )
+        
+    # accumulate mc errors by variable
+    total_bkg_error = processor.accumulate([hists[sample] for sample in hists])
 
-    mc_errors = {}
-    for kin in total_bkg_histograms:
-        mc_errors[kin] = {}
-        for var in total_bkg_histograms[kin].axes.name:
-            mc_errors[kin][var] = np.sqrt(
-                total_bkg_histograms[kin].project(var).values()
-            )
-    return mc_errors
+    return total_bkg_error
