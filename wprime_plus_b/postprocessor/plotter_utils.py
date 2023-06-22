@@ -155,19 +155,6 @@ def plot_histogram(
     hep.histplot(mc_histos, label=mc_labels, ax=ax, **mc_hist_kwargs)
     hep.histplot(data_hist, label="Data", ax=ax, **data_hist_kwargs)
 
-    # set axes labels and legend. change legend layout for any distribution with 'eta' or 'phi'
-    ncols = 1
-    if ("eta" in var) or ("phi" in var):
-        ncols = 3
-        ylim = ax.get_ylim()[1]
-        ax.set_ylim(0, ylim + 0.4 * ylim)
-        ax.legend(loc="upper center", ncol=ncols)
-    else:
-        ax.legend(loc="upper right", ncol=ncols)
-    ax.set(
-        xlabel=None,
-        ylabel="Events",
-    )
     # get histogram's edges and centers
     total_mc = processor.accumulate(mc_histos)
     edges = total_mc.axes.edges[0]
@@ -191,6 +178,19 @@ def plot_histogram(
         edges=edges,
         label="Stat. unc.",
         **errps,
+    )
+    # set axes labels and legend. change legend layout for any distribution with 'eta' or 'phi'
+    ncols = 1
+    if ("eta" in var) or ("phi" in var):
+        ncols = 3
+        ylim = ax.get_ylim()[1]
+        ax.set_ylim(0, ylim + 0.4 * ylim)
+        ax.legend(loc="upper center", ncol=ncols)
+    else:
+        ax.legend(loc="upper right", ncol=ncols)
+    ax.set(
+        xlabel=None,
+        ylabel="Events",
     )
     # set lumi and CMS text
     hep.cms.lumitext("41.5 fb$^{-1}$ (2017, 13 TeV)", fontsize=9, ax=ax)
