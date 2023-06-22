@@ -15,6 +15,7 @@ from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyPro
 from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
 from wprime_plus_b.processors.cr1_skimmer import TTbarCR1Skimmer
 from wprime_plus_b.processors.cr2_skimmer import TTbarCR2Skimmer
+from wprime_plus_b.processors.ztoll_skimmer import ZToLLSkimmer
 
 def main(args):
     # load and process filesets
@@ -31,9 +32,10 @@ def main(args):
         "ttbar_cr2": TTbarCR2Processor,
         "ttbar_cr1_skimmer": TTbarCR1Skimmer,
         "ttbar_cr2_skimmer": TTbarCR2Skimmer,
+        "ztoll": ZToLLSkimmer,
+        "candle": CandleProcessor,
         "trigger": TriggerEfficiencyProcessor,
         "signal": SignalRegionProcessor,
-        "candle": CandleProcessor,
         "btag_eff": BTagEfficiencyProcessor,
     }
     processor_kwargs = {
