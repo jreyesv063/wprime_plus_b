@@ -15,7 +15,6 @@ from processor_utils import (
     get_mc_error,
 )
 
-
 def main(args):
     np.seterr(divide="ignore", invalid="ignore")
 
@@ -57,8 +56,8 @@ def main(args):
     if not output_path.exists():
         output_path.mkdir(parents=True)
     # plot histograms
-    for sample in tqdm(grouped_histograms):
-        for kin in grouped_histograms[sample]:
+    for sample in grouped_histograms:
+        for kin in tqdm(grouped_histograms[sample]):
             for var in grouped_histograms[sample][kin].axes.name:
                 plot_histogram(
                     histograms=grouped_histograms,
@@ -68,6 +67,7 @@ def main(args):
                     channel=args.channel,
                     output_dir=output_path,
                 )
+        break
 
 
 if __name__ == "__main__":
