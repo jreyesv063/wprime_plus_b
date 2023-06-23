@@ -1,5 +1,8 @@
 import hist
 
+#---------------------------------
+# ttbar control regions histograms
+#---------------------------------
 # jet hist
 jet_pt_axis = hist.axis.Variable(
     edges=[30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
@@ -21,9 +24,8 @@ jet_hist = hist.Hist(
     jet_pt_axis,
     jet_eta_axis,
     jet_phi_axis,
-    storage="weight",  # hist.storage.Weight(),
+    hist.storage.Weight()
 )
-
 # met hist
 met_axis = hist.axis.Variable(
     edges=[50, 75, 100, 125, 150, 175, 200, 300, 500],
@@ -40,7 +42,6 @@ met_hist = hist.Hist(
     met_phi_axis,
     hist.storage.Weight(),
 )
-
 # electron hist
 lepton_pt_axis = hist.axis.Variable(
     edges=[30, 60, 90, 120, 150, 180, 210, 240, 300, 500],
@@ -86,7 +87,6 @@ lepton_bjet_hist = hist.Hist(
     lepton_bjet_mass_axis,
     hist.storage.Weight(),
 )
-
 # lepton + missing energy
 lepton_met_mass_axis = hist.axis.Variable(
     edges=[40, 75, 100, 125, 150, 175, 200, 300, 500, 800],
@@ -110,7 +110,6 @@ lepton_met_bjet_hist = hist.Hist(
     hist.storage.Weight(),
 )
 
-
 ttbar_cr_histograms = {
     "jet_kin": jet_hist,
     "met_kin": met_hist,
@@ -118,4 +117,21 @@ ttbar_cr_histograms = {
     "lepton_bjet_kin": lepton_bjet_hist,
     "lepton_met_kin": lepton_met_hist,
     "lepton_met_bjet_kin": lepton_met_bjet_hist,
+}
+
+#-------------------------------
+# ztoll control region histogram
+#-------------------------------
+dilepton_mass_axis = hist.axis.Regular(
+    bins=40, 
+    start=50, 
+    stop=200, 
+    name="dilepton_mass"
+)
+dilepton_mass_hist = hist.Hist(
+    dilepton_mass_axis, 
+    hist.storage.Weight()
+)
+dilepton_mass_histogram = {
+    "dilepton_kin": dilepton_mass_hist
 }
