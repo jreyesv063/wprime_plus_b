@@ -244,6 +244,8 @@ def plot_histogram(
     down_distance = abs(down_limit - 1)
     if up_distance > 2 * down_distance:
         ydown = 1 - up_distance
+    if up_distance < 1:
+        yup = 1 + down_distance
             
     # set ratio plot labels, limits and facecolor
     rax.set(
