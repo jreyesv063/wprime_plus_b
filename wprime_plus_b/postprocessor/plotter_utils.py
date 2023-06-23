@@ -88,6 +88,8 @@ def plot_histogram(
     mc_errors: dict = None,
     channel: str = "mu",
     output_dir: str = None,
+    xlimits: tuple = (None, None),
+    cms_loc: int = 0,
 ) -> None:
     """
     plot mc and data histograms. include data/bkg ratio plot
@@ -107,6 +109,10 @@ def plot_histogram(
         lepton channel {'mu', 'ele'}
     output_dir:
         name of the directory to save the figure
+    xlimits:
+        limits for the x axis
+    cms_loc:
+        location of the CMS text
     """
     # set style and some plotting params
     hep.style.use(hep.style.CMS)
@@ -193,10 +199,11 @@ def plot_histogram(
     ax.set(
         xlabel=None,
         ylabel="Events",
+        xlim=xlimits,
     )
     # set lumi and CMS text
     hep.cms.lumitext("41.5 fb$^{-1}$ (2017, 13 TeV)", fontsize=9, ax=ax)
-    hep.cms.text("Preliminary", ax=ax)
+    hep.cms.text("Preliminary", loc=cms_loc, ax=ax)
 
     # --------------------
     # data/bkg ratio plot
@@ -251,6 +258,7 @@ def plot_histogram(
     rax.set(
         xlabel=label_map[channel][var],
         ylabel="Data/Bkg",
+        xlim=xlimits,
         ylim=(ydown, yup),
         facecolor="white",
     )
