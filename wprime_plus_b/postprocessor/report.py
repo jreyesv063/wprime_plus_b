@@ -6,8 +6,16 @@ def build_report(
     accumulated_outputs: dict, xsecs: dict, lumi: float = 41477.877399
 ) -> pd.DataFrame:
     """
-    build report with expected number of events and statistical
-    errors for bkgs, data, total bkg, and data/total bkg
+    Build a report containing the expected number of events and statistical errors for backgrounds,
+    data, total background, and data/total background ratio
+
+    Arguments:
+        accumulated_outputs (dict): A dictionary containing the accumulated outputs for different samples.
+        xsecs (dict): A dictionary containing the cross-sections for different samples.
+        lumi (float): The luminosity value used for scaling the expected number of events (default: 41477.877399 (2017)).
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame containing the report with columns 'events', 'error', and 'percentage'.
     """
     mcs = ["DYJetsToLL", "WJetsToLNu", "VV", "tt", "SingleTop", "Higgs"]
     events = {sample: 0 for sample in mcs}
@@ -50,13 +58,13 @@ def build_report(
         elif ("VBFH" in sample) or ("GluGluH" in sample):
             events["Higgs"] += n_phys
             errors["Higgs"] += error
-            
+
     # add number of expected events and errors to report
-    report_df = pd.DataFrame(columns=["events", "percentage", "error"])
+    report_df = pd.DataFrame(columns=["events", "error", "percentage"])
     for sample in events:
         report_df.loc[sample, "events"] = events[sample]
         report_df.loc[sample, "error"] = errors[sample]
-        
+
     # add percentages to report
     mcs_output = report_df.loc[mcs].copy()
     report_df.loc[mcs, "percentage"] = (
@@ -80,5 +88,10 @@ def build_report(
     report_df.loc["Data/bkg", "error"] = np.sqrt(
         (1 / bkg) ** 2 * data_err**2 + (data / bkg**2) ** 2 * bkg_err**2
     )
-
+    # drop process with no events
+    report_df = report_df.loc[report_df.sum(axis=1) > 0]
+    
+    # sort by percentage
+    report_df = report_df.sort_values(by="percentage", ascending=False)
+    
     return report_df
