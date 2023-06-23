@@ -22,6 +22,7 @@ label_map = {
         "lepton_met_mass": r"$m_T$($e$, $p_T^{miss}$) [GeV]",
         "lepton_met_delta_phi": r"$\Delta \phi(e, p_T^{miss})$",
         "lepton_met_bjet_mass": r"$m_T^{tot}(e, $b-Jet$_{0}, p_T^{miss})$ [GeV]",
+        "dilepton_mass": r"$m_{ee}$ [GeV]"
     },
     "mu": {
         "jet_pt": r"$p_T$(b-Jet$_{0}$) [GeV]",
@@ -38,6 +39,7 @@ label_map = {
         "lepton_met_mass": r"$m_T$($\mu$, $p_T^{miss}$) [GeV]",
         "lepton_met_delta_phi": r"$\Delta \phi(\mu, p_T^{miss})$",
         "lepton_met_bjet_mass": r"$m_T^{tot}(\mu, $b-Jet$_{0}, p_T^{miss})$ [GeV]",
+        "dilepton_mass": r"$m_{\mu \mu}$ [GeV]"
     },
 }
 sample_map = {
