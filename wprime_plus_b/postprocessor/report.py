@@ -88,10 +88,11 @@ def build_report(
     report_df.loc["Data/bkg", "error"] = np.sqrt(
         (1 / bkg) ** 2 * data_err**2 + (data / bkg**2) ** 2 * bkg_err**2
     )
+    # sort processes by percentage
+    report_df = report_df.loc[mcs + ["Total bkg", "Data", "Data/bkg"]]
+    report_df = report_df.sort_values(by="percentage", ascending=False)
+    
     # drop process with no events
     report_df = report_df.loc[report_df.sum(axis=1) > 0]
-    
-    # sort by percentage
-    report_df = report_df.sort_values(by="percentage", ascending=False)
     
     return report_df
