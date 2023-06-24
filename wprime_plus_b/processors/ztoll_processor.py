@@ -1,33 +1,21 @@
-import os
 import json
 import pickle
-import correctionlib
 import numpy as np
-import pandas as pd
 import awkward as ak
-import hist as hist2
-from datetime import datetime
-from typing import List, Union
-from typing import Type
-from coffea import util
 from coffea import processor
-from coffea.nanoevents.methods import candidate, vector
 from coffea.analysis_tools import Weights, PackedSelection
-from .utils import normalize, build_p4
+from .utils import normalize
 from .corrections import (
-    add_pileup_weight,
-    add_electronID_weight,
-    add_electronReco_weight,
-    add_electronTrigger_weight,
-    add_muon_weight,
-    add_muonTriggerIso_weight,
-    get_met_corrections,
     BTagCorrector,
-    get_jec_jer_corrections
+    ElectronCorrector,
+    MuonCorrector,
+    add_pileup_weight,
+    met_phi_corrections,
+    jet_corrections,
 )
 
 
-class ZToLLSkimmer(processor.ProcessorABC):
+class ZToLLProcessor(processor.ProcessorABC):
     def __init__(
         self,
         year: str = "2017",
@@ -52,7 +40,7 @@ class ZToLLSkimmer(processor.ProcessorABC):
         with open("wprime_plus_b/data/btagDeepFlavB.json", "r") as f:
             self._btagDeepFlavB = json.load(f)[self._year]
 
-        # variables will be store in out and then we'll put them into a column accumulator in output
+        # variables will be store in out and then will be put in a column accumulator in output
         self.out = {}
         self.output = {}
         
@@ -99,22 +87,20 @@ class ZToLLSkimmer(processor.ProcessorABC):
         # apply JEC/JER corrections to MC jets (propagate corrections to MET)
         # in data, the corrections are already applied
         if self.is_mc:
-            corrected_jets, _ = get_jec_jer_corrections(
-                events, self._year + self._yearmod
-            )
+            jets, _ = jet_corrections(events, self._year + self._yearmod)
         else:
-            corrected_jets, _ = events.Jet, events.MET
+            jets, _ = events.Jet, events.MET
             
         # select good bjets
         good_bjets = (
-            (corrected_jets.pt >= 20)
-            & (corrected_jets.jetId == 6)
-            & (corrected_jets.puId == 7)
-            & (corrected_jets.btagDeepFlavB > self._btagDeepFlavB)
-            & (np.abs(corrected_jets.eta) < 2.4)
+            (jets.pt >= 20)
+            & (jets.jetId == 6)
+            & (jets.puId == 7)
+            & (jets.btagDeepFlavB > self._btagDeepFlavB)
+            & (np.abs(jets.eta) < 2.4)
         )
         n_good_bjets = ak.sum(good_bjets, axis=1)
-        bjets = corrected_jets[good_bjets]
+        bjets = jets[good_bjets]
         
         # ---------------
         # event variables
@@ -159,7 +145,7 @@ class ZToLLSkimmer(processor.ProcessorABC):
         self.selections.add("trigger_ele", trigger["ele"])
         self.selections.add("trigger_mu", trigger["mu"])
         
-        # check that we have 2lepton events
+        # check that we have 2l events
         self.selections.add("two_leptons", n_good_leptons == 2)
         # check that leading electron pt is greater than 45 GeV
         self.selections.add("leading_electron", leading_lepton.pt > 45)
@@ -211,65 +197,56 @@ class ZToLLSkimmer(processor.ProcessorABC):
                     weightUp=events.L1PreFiringWeight.Up,
                     weightDown=events.L1PreFiringWeight.Dn,
                 )
-            # pileup reweighting
+            # add pileup reweighting
             add_pileup_weight(
+                n_true_interactions=ak.to_numpy(events.Pileup.nPU),
                 weights=self.weights,
                 year=self._year,
-                mod=self._yearmod,
-                nPU=ak.to_numpy(events.Pileup.nPU),
+                year_mod=self._yearmod,
             )
-            # add btagging weights using the deepJet tagger and the medium working point
+            # b-tagging corrector
             btag_corrector = BTagCorrector(
-                wp="M", tagger="deepJet", year=self._year, mod=self._yearmod
+                sf_type="comb",
+                worging_point="M",
+                tagger="deepJet",
+                year=self._year,
+                year_mod=self._yearmod,
             )
+            # add btagging weights
             btag_corrector.add_btag_weight(jets=bjets, weights=self.weights)
 
-            # add electron weights
             if self._channel == "ele":
-                # add electron ID, reco and trigger weights
-                add_electronID_weight(
+                # electron corrector
+                electron_corrector = ElectronCorrector(
+                    electrons=ak.firsts(electrons),
                     weights=self.weights,
-                    electrons=electrons,
                     year=self._year,
-                    mod=self._yearmod,
-                    wp="wp80noiso" if self._channel == "ele" else "wp90noiso",
+                    year_mod=self._yearmod,
                 )
-                add_electronReco_weight(
-                    weights=self.weights,
-                    electrons=electrons,
-                    year=self._year,
-                    mod=self._yearmod,
+                # add electron ID weights
+                electron_corrector.add_id_weight(
+                    working_point="wp80noiso" if self._channel == "ele" else "wp90noiso",
                 )
-                add_electronTrigger_weight(
-                    weights=self.weights,
-                    electrons=electrons,
-                    year=self._year,
-                    mod=self._yearmod,
-                )
+                # add electron reco weights
+                electron_corrector.add_reco_weight()
+                # add electron trigger weights
+                electron_corrector.add_trigger_weight()
+
             if self._channel == "mu":
-                # add muon ID, iso and trigger weights
-                add_muon_weight(
+                # muon corrector
+                muon_corrector = MuonCorrector(
+                    muons=ak.firsts(muons),
                     weights=self.weights,
-                    muons=muons,
-                    sf_type="id",
                     year=self._year,
-                    mod=self._yearmod,
-                    wp="tight",
+                    year_mod=self._yearmod,
                 )
-                add_muon_weight(
-                    weights=self.weights,
-                    muons=muons,
-                    sf_type="iso",
-                    year=self._year,
-                    mod=self._yearmod,
-                    wp="tight",
-                )
-                add_muonTriggerIso_weight(
-                    weights=self.weights,
-                    muons=muons,
-                    year=self._year,
-                    mod=self._yearmod,
-                )
+                # add muon ID weights
+                muon_corrector.add_id_weight(working_point="tight")
+                # add muon iso weights
+                muon_corrector.add_iso_weight(working_point="tight")
+                # add muon trigger weights
+                muon_corrector.add_triggeriso_weight()
+                    
         # save total weight from the weights container
         self.add_var("weights", self.weights.weight())
         
