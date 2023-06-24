@@ -7,15 +7,15 @@ from coffea import processor
 from datetime import datetime
 from dask.distributed import Client
 from distributed.diagnostics.plugin import UploadDirectory
-from wprime_plus_b.processors.candle_processor import CandleProcessor
+#from wprime_plus_b.processors.candle_processor import CandleProcessor
+#from wprime_plus_b.processors.ttbar_cr1_processor import TTbarCR1Processor
+#from wprime_plus_b.processors.ttbar_cr2_processor import TTbarCR2Processor
+#from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
+from wprime_plus_b.processors.ztoll_processor import ZToLLProcessor
+from wprime_plus_b.processors.cr1_processor import TTbarCR1Processor
+from wprime_plus_b.processors.cr2_processor import TTbarCR2Processor
 from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
-from wprime_plus_b.processors.ttbar_cr1_processor import TTbarCR1Processor
-from wprime_plus_b.processors.ttbar_cr2_processor import TTbarCR2Processor
 from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
-from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
-from wprime_plus_b.processors.cr1_skimmer import TTbarCR1Skimmer
-from wprime_plus_b.processors.cr2_skimmer import TTbarCR2Skimmer
-from wprime_plus_b.processors.ztoll_skimmer import ZToLLSkimmer
 
 def main(args):
     # load and process filesets
@@ -28,15 +28,16 @@ def main(args):
         fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
     # define processors
     processors = {
+        "signal": SignalRegionProcessor,
         "ttbar_cr1": TTbarCR1Processor,
         "ttbar_cr2": TTbarCR2Processor,
-        "ttbar_cr1_skimmer": TTbarCR1Skimmer,
-        "ttbar_cr2_skimmer": TTbarCR2Skimmer,
-        "ztoll": ZToLLSkimmer,
-        "candle": CandleProcessor,
-        "trigger": TriggerEfficiencyProcessor,
-        "signal": SignalRegionProcessor,
+        "ztoll": ZToLLProcessor,
         "btag_eff": BTagEfficiencyProcessor,
+        #"ttbar_cr1": TTbarCR1Processor,
+        #"ttbar_cr2": TTbarCR2Processor,
+        #"candle": CandleProcessor,
+        #"trigger": TriggerEfficiencyProcessor,
+        
     }
     processor_kwargs = {
         "year": args.year,
