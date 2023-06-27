@@ -171,3 +171,23 @@ def prod_unflatten(array: ak.Array, n: ak.Array):
         n: array with the number of objects per event. Used to perform the unflatten operation
     """
     return ak.prod(ak.unflatten(array, n), axis=1)
+
+
+def clip_array(array: ak.Array, target=2, fill_value=1) -> ak.Array:
+    """
+    Clips an awkward array to a fixed length by padding with None values. Fills any remaining 
+    None values in the clipped array with 'fill_value'
+
+    Parameters:
+    -----------
+        array: 
+            Data containing nested lists to pad to a target length
+        target: 
+            The intended length of the lists. The output lists will have exactly this length.
+        fill_value: 
+            The value used to fill any remaining None values after clipping. Defaults to 1.
+
+    Returns:
+        ak.Array: The clipped collection with a fixed length, padded with None values and filled as specified.
+    """
+    return ak.fill_none(ak.pad_none(array, target, clip=True), fill_value)
