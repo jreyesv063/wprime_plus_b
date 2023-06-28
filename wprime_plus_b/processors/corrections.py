@@ -6,13 +6,12 @@ import numpy as np
 import awkward as ak
 import importlib.resources
 from coffea import util
+from .utils import clip_array
 from typing import Type, Tuple
 from coffea.lookup_tools import extractor
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.jetmet_tools import JECStack, CorrectedJetsFactory, CorrectedMETFactory
-
-
 
 
 # CorrectionLib files are available from
@@ -58,12 +57,17 @@ def get_pog_json(json_name: str, year: str) -> str:
     return f"{POG_CORRECTION_PATH}/POG/{pog_json[0]}/{POG_YEARS[year]}/{pog_json[1]}"
 
 
+# ------------------------------
+# EVENT-WISE CORRECTIONS
+# ------------------------------
+
+
 # --------------------
 # pileup scale factors
 # --------------------
 def add_pileup_weight(
     weights: Type[Weights], year: str, year_mod: str, n_true_interactions: ak.Array
-):
+) -> None:
     """
     add pileup scale factor
 
@@ -105,70 +109,206 @@ def add_pileup_weight(
     )
 
 
-# ----------------------------------
-# b-tagging scale factors
-# -----------------------------------
 class BTagCorrector:
     """
-    BTag corrector class.
+        BTag corrector class.
 
-    For the working point corrections the SFs in 'mujets' and 'comb' are for b/c jets.
-    The 'mujets' SFs contain only corrections derived in QCD-enriched regions. The 'comb' SFs
-    contain corrections derived in QCD and ttbar-enriched regions. Hence, 'comb' SFs can be used
-    everywhere, except for ttbar-dileptonic enriched analysis regions. For the ttbar-dileptonic regions
-    the 'mujets' SFs should be used.
+        Parameters:
+        -----------
+            sf_type:
+                scale factors type to use {mujets, comb}
+                For the working point corrections the SFs in 'mujets' and 'comb' are for b/c jets.
+                The 'mujets' SFs contain only corrections derived in QCD-enriched regions.
+                The 'comb' SFs contain corrections derived in QCD and ttbar-enriched regions.
+                Hence, 'comb' SFs can be used everywhere, except for ttbar-dileptonic enriched analysis regions.
+                For the ttbar-dileptonic regionsthe 'mujets' SFs should be used.
+            worging_point:
+                worging point {'L', 'M', 'T'}
+            tagger:
+                tagger {'deepJet', 'deepCSV'}
+            year:
+                dataset year {'2016', '2017', '2018'}
+            year_mod:
+                year modifier {"", "APV"}
+            jets:
+                Jet collection
+            njets:
+                Number of jets to use
+            weights:
+                Weights container from coffea.analysis_tools
+            full_run:
+                False (default) if only one year is analized,
+                True if the fullRunII data is analyzed.
+                If False, the 'up' and 'down' systematics are be used.
+                If True, 'up/down_correlated' and 'up/down_uncorrelated'
+                systematics are used instead of the 'up/down' ones,
+                which are supposed to be correlated/decorrelated
+                between the different data years
 
-    Parameters:
-    -----------
-        sf_type:
-            scale factors type to use (mujets or comb)
-        worging_point:
-            worging point {'L', 'M', 'T'}
-        tagger:
-            tagger {'deepJet', 'deepCSV'}
-        year:
-            dataset year {'2016', '2017', '2018'}
-        year_mod:
-            year modifier {"", "APV"}
+        Example:
+        --------
+            # load events array
+            events = NanoEventsFactory.from_root('nanoaod_file.root', schemaclass=NanoAODSchema).events()
+
+            # define your jet selection
+            bjets = events.Jet[(
+                (events.Jet.pt >= 20)
+                & (events.Jet.jetId == 6)
+                & (events.Jet.puId == 7)
+                & (events.Jet.btagDeepFlavB > 0.3)
+                & (np.abs(events.Jet.eta) < 2.4)
+            )]
+
+            # create an instance of the Weights container
+            weights = Weights(len(events), storeIndividual=True)
+
+            # create an instance of BTagCorrector
+            btag_corrector = BTagCorrector(
+                jets=bjets,
+                njets=2,
+                weights=weights,
+                sf_type="comb",
+                worging_point="M",
+                tagger="deepJet",
+                year="2017",
+            )
+            # add bc and light btagging weights to weights container
+            btag_corrector.add_btag_weights(flavor="bc")
+            btag_corrector.add_btag_weights(flavor="light")
     """
 
     def __init__(
         self,
+        jets: ak.Array,
+        njets: int,
+        weights: Type[Weights],
         sf_type: str = "comb",
         worging_point: str = "M",
         tagger: str = "deepJet",
         year: str = "2017",
         year_mod: str = "",
-    ):
+        full_run: bool = False,
+    ) -> None:
         self._sf = sf_type
-        self._year = year + year_mod
+        self._year = year
+        self._yearmod = year_mod
         self._tagger = tagger
         self._wp = worging_point
         self._branch = TAGGER_BRANCH[tagger]
+        self._weights = weights
+        self._full_run = full_run
 
-        # define btagging working point (only for deepJet)
+        # define correction set
+        self._cset = correctionlib.CorrectionSet.from_file(
+            get_pog_json(json_name="btag", year=year + year_mod)
+        )
+        # systematics
+        self._syst_up = "up_correlated" if full_run else "up"
+        self._syst_down = "down_correlated" if full_run else "down"
+
+        # bc and light jets
+        # hadron flavor definition: 5=b, 4=c, 0=udsg
+        self._bc_jets = jets[jets.hadronFlavour > 0]
+        self._light_jets = jets[jets.hadronFlavour == 0]
+        self._jet_map = {"bc": self._bc_jets, "light": self._light_jets}
+
+        # number of jets to use
+        if njets == "all":
+            njets = ak.max(ak.num(jets))
+        self._njets = njets
+
+        # load efficiency lookup table (only for deepJet)
+        # efflookup(pt, |eta|, flavor)
+        with importlib.resources.path(
+            "wprime_plus_b.data", f"btag_eff_{self._tagger}_{self._wp}_{year}.coffea"
+        ) as filename:
+            self._efflookup = util.load(str(filename))
+            
+        # load btagging working point (only for deepJet)
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation
         with importlib.resources.path("wprime_plus_b.data", "btagWPs.json") as path:
             with open(path, "r") as handle:
                 btag_working_points = json.load(handle)
         self._btagwp = btag_working_points[tagger][year + year_mod][worging_point]
 
-        # define correction set
-        self._cset = correctionlib.CorrectionSet.from_file(
-            get_pog_json(json_name="btag", year=year + year_mod)
+    def add_btag_weights(self, flavor: str) -> None:
+        """
+        Add b-tagging weights (nominal, up and down) to weights container for bc or light jets
+
+        Parameters:
+        -----------
+            flavor:
+                hadron flavor {'bc', 'light'}
+        """
+        # efficiencies
+        eff = self.efficiency(flavor=flavor)
+
+        # mask with events that pass the btag working point
+        passbtag = self.passbtag_mask(flavor=flavor)
+
+        # scale factors
+        jets_sf = self.get_scale_factors(flavor=flavor, syst="central")
+        jets_sf_up = self.get_scale_factors(flavor=flavor, syst=self._syst_up)
+        jets_sf_down = self.get_scale_factors(flavor=flavor, syst=self._syst_down)
+
+        # get weights
+        jets_weight = self.get_btag_weight(eff, jets_sf, passbtag)
+        jets_weight_up = self.get_btag_weight(eff, jets_sf_up, passbtag)
+        jets_weight_down = self.get_btag_weight(eff, jets_sf_down, passbtag)
+
+        # add weights to Weights container
+        self._weights.add(
+            name=f"{flavor}_{self._njets}_jets",
+            weight=jets_weight,
+            weightUp=jets_weight_up,
+            weightDown=jets_weight_down,
         )
 
-        # load efficiency lookup table
-        # efflookup(pt, |eta|, flavor)
-        with importlib.resources.path(
-            "wprime_plus_b.data", f"btag_eff_{tagger}_{worging_point}_{year}.coffea"
-        ) as filename:
-            self.efflookup = util.load(str(filename))
+    def efficiency(self, flavor: str, fill_value=1) -> ak.Array:
+        """compute the btagging efficiency for 'njets' jets"""
+        eff = self._efflookup(
+            self._jet_map[flavor].pt,
+            np.abs(self._jet_map[flavor].eta),
+            self._jet_map[flavor].hadronFlavour,
+        )
+        return clip_array(
+            array=eff,
+            target=self._njets,
+            fill_value=fill_value,
+        )
 
-    def btag_sf(self, j, syst="central"):
-        # syst: central, down, down_correlated, down_uncorrelated, up, up_correlated
-        j, nj = ak.flatten(j), ak.num(j)
-        sf = self._cset[f"{self._tagger}_{self._sf}"].evaluate(
+    def passbtag_mask(self, flavor, fill_value=True) -> ak.Array:
+        """return the mask with jets that pass the b-tagging working point"""
+        pass_mask = self._jet_map[flavor][self._branch] > self._btagwp
+        return clip_array(array=pass_mask, target=self._njets, fill_value=fill_value)
+
+    def get_scale_factors(self, flavor: str, syst="central", fill_value=1) -> ak.Array:
+        """
+        compute jets scale factors
+        """
+        scale_factors = self.get_sf(flavor=flavor, syst=syst)
+        return clip_array(
+            array=scale_factors, target=self._njets, fill_value=fill_value
+        )
+
+    def get_sf(self, flavor: str, syst: str = "central") -> ak.Array:
+        """
+        compute the scale factors for bc or light jets
+
+        Parameters:
+        -----------
+            flavor:
+                hadron flavor {'bc', 'light'}
+            syst:
+                Name of the systematic {'central', 'down', 'down_correlated', 'down_uncorrelated', 'up', 'up_correlated'}
+        """
+        cset_keys = {
+            "bc": f"{self._tagger}_{self._sf}",
+            "light": f"{self._tagger}_incl",
+        }
+        # until correctionlib handles jagged data natively we have to flatten and unflatten
+        j, nj = ak.flatten(self._jet_map[flavor]), ak.num(self._jet_map[flavor])
+        sf = self._cset[cset_keys[flavor]].evaluate(
             syst,
             self._wp,
             np.array(j.hadronFlavour),
@@ -177,73 +317,33 @@ class BTagCorrector:
         )
         return ak.unflatten(sf, nj)
 
-    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagSFMethods
     @staticmethod
-    def get_btag_weight(eff, sf, passbtag):
-        # tagged SF = SF * eff / eff = SF
-        tagged_sf = ak.prod(sf[passbtag], axis=-1)
-        # untagged SF = (1 - SF * eff) / (1 - eff)
-        untagged_sf = ak.prod(((1 - sf * eff) / (1 - eff))[~passbtag], axis=-1)
-
-        return ak.fill_none(tagged_sf * untagged_sf, 1.0)
-
-    def add_btag_weight(
-        self, jets: ak.Array, weights: Type[Weights], full_run: bool = False
-    ):
+    def get_btag_weight(eff: ak.Array, sf: ak.Array, passbtag: ak.Array) -> ak.Array:
         """
-        Add b-tagging scale factors to weights container
+        compute b-tagging weights
 
-        If only one year is analyzed, the 'up' and 'down' systematics can be used.
-        If the fullRunII data is analyzed, 'up/down_correlated' and 'up/down_uncorrelated'
-        systematics are provided to be used instead of the 'up/down' ones, which are
-        supposed to be correlated/decorrelated between the different data years
+        see: https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagSFMethods
 
         Parameters:
         -----------
-            jets:
-                Jet collection
-            weights:
-                Weights container from coffea.analysis_tools
-            full_run:
-                False (default) if only one year is analized
+            eff:
+                btagging efficiencies
+            sf:
+                jets scale factors
+            passbtag:
+                mask with jets that pass the b-tagging working point
         """
-        phasespace_cuts = (abs(jets.eta) < 2.5) & (jets.pt > 20.0)
+        # tagged SF = SF * eff / eff = SF
+        tagged_sf = sf.mask[passbtag]
 
-        # hadron flavor definition: 5=b, 4=c, 0=udsg
-        bc_jets = jets[phasespace_cuts & (jets.hadronFlavour > 0)]
+        # untagged SF = (1 - SF * eff) / (1 - eff)
+        untagged_sf = ((1 - sf * eff) / (1 - eff)).mask[~passbtag]
 
-        # efficiencies
-        bc_eff = self.efflookup(bc_jets.pt, np.abs(bc_jets.eta), bc_jets.hadronFlavour)
-
-        # mask with events that pass the btag working point
-        bc_pass = bc_jets[self._branch] > self._btagwp
-
-        # get weights
-        values = {}
-        values["nominal"] = self.get_btag_weight(
-            bc_eff, self.btag_sf(bc_jets, syst="central"), bc_pass
-        )
-        if full_run:
-            values["up"] = self.get_btag_weight(
-                bc_eff, self.btag_sf(bc_jets, syst="up_correlated"), bc_pass
-            )
-            values["down"] = self.get_btag_weight(
-                bc_eff, self.btag_sf(bc_jets, syst="down_correlated"), bc_pass
-            )
-        else:
-            values["up"] = self.get_btag_weight(
-                bc_eff, self.btag_sf(bc_jets, syst="up"), bc_pass
-            )
-            values["down"] = self.get_btag_weight(
-                bc_eff, self.btag_sf(bc_jets, syst="down"), bc_pass
-            )
-        # add btagging weights to weights container
-        weights.add(
-            name="bc_btag",
-            weight=values["nominal"],
-            weightUp=values["up"],
-            weightDown=values["down"],
-        )
+        # if njets > 1, compute the product of the scale factors
+        if tagged_sf.ndim > 1:
+            tagged_sf = ak.prod(tagged_sf, axis=-1)
+            untagged_sf = ak.prod(untagged_sf, axis=-1)
+        return ak.fill_none(tagged_sf * untagged_sf, 1.0)
 
 
 # ----------------------------------
@@ -271,6 +371,8 @@ class ElectronCorrector:
         Year of the dataset {'2016', '2017', '2018'}
     year_mod:
         Year modifier {'', 'APV'}
+    tag:
+        label to include in the weight name
     """
 
     def __init__(
@@ -279,7 +381,8 @@ class ElectronCorrector:
         weights: Type[Weights],
         year: str = "2017",
         year_mod: str = "",
-    ):
+        tag: str = "electron",
+    ) -> None:
         # electron array
         self.electrons = electrons
 
@@ -297,6 +400,8 @@ class ElectronCorrector:
         self.year = year
         self.year_mod = year_mod
         self.pog_year = POG_YEARS[year + year_mod]
+
+        self.tag = tag
 
     def add_id_weight(self, working_point: str = "wp80noiso") -> None:
         """
@@ -331,13 +436,13 @@ class ElectronCorrector:
         )
         # add scale factors to weights container
         self.weights.add(
-            name=f"electron_id",
+            name=f"{self.tag}_id",
             weight=values["nominal"],
             weightUp=values["up"],
             weightDown=values["down"],
         )
 
-    def add_reco_weight(self):
+    def add_reco_weight(self) -> None:
         """add electron reconstruction scale factors to weights container"""
         # electron pseudorapidity range: (-inf, inf)
         electron_eta = self.electron_eta
@@ -363,13 +468,13 @@ class ElectronCorrector:
         )
         # add scale factors to weights container
         self.weights.add(
-            name="electron_reco",
+            name=f"{self.tag}_reco",
             weight=values["nominal"],
             weightUp=values["up"],
             weightDown=values["down"],
         )
 
-    def add_trigger_weight(self):
+    def add_trigger_weight(self) -> None:
         """add electron trigger scale factors to weights container"""
         # corrections still not provided by POG
         with importlib.resources.path(
@@ -391,7 +496,7 @@ class ElectronCorrector:
             )
             # add scale factors to weights container
             self.weights.add(
-                name="electron_trigger",
+                name=f"{self.tag}_trigger",
                 weight=values["nominal"],
             )
 
@@ -423,6 +528,8 @@ class MuonCorrector:
         Year of the dataset {'2016', '2017', '2018'}
     year_mod:
         Year modifier {'', 'APV'}
+    tag:
+        label to include in the weight name
     """
 
     def __init__(
@@ -431,7 +538,8 @@ class MuonCorrector:
         weights: Type[Weights],
         year: str = "2017",
         year_mod: str = "",
-    ):
+        tag: str = "muon",
+    ) -> None:
         # muon array
         self.muons = muons
 
@@ -451,7 +559,9 @@ class MuonCorrector:
         self.year_mod = year_mod
         self.pog_year = POG_YEARS[year + year_mod]
 
-    def add_id_weight(self, working_point: str = "tight"):
+        self.tag = tag
+
+    def add_id_weight(self, working_point: str = "tight") -> None:
         """
         add muon ID scale factors to weights container
         Parameters:
@@ -461,7 +571,7 @@ class MuonCorrector:
         """
         self.add_weight(sf_type="id", working_point=working_point)
 
-    def add_iso_weight(self, working_point: str = "tight"):
+    def add_iso_weight(self, working_point: str = "tight") -> None:
         """
         add muon Iso (LooseRelIso with mediumID) scale factors to weights container
         Parameters:
@@ -471,7 +581,7 @@ class MuonCorrector:
         """
         self.add_weight(sf_type="iso", working_point=working_point)
 
-    def add_triggeriso_weight(self):
+    def add_triggeriso_weight(self) -> None:
         """add muon Trigger Iso (IsoMu24 or IsoMu27) scale factors"""
         # muon absolute pseudorapidity range: [0, 2.4)
         muon_eta = np.clip(self.muon_eta.copy(), 0.0, 2.399)
@@ -498,13 +608,13 @@ class MuonCorrector:
         )
         # add scale factors to weights container
         self.weights.add(
-            name="muon_triggeriso",
+            name=f"{self.tag}_triggeriso",
             weight=values["nominal"],
             weightUp=values["up"],
             weightDown=values["down"],
         )
 
-    def add_weight(self, sf_type: str, working_point: str = "tight"):
+    def add_weight(self, sf_type: str, working_point: str = "tight") -> None:
         """
         add muon ID (TightID) or Iso (LooseRelIso with mediumID) scale factors
 
@@ -543,11 +653,16 @@ class MuonCorrector:
         )
         # add scale factors to weights container
         self.weights.add(
-            name=f"muon_{sf_type}",
+            name=f"{self.tag}_{sf_type}",
             weight=values["nominal"],
             weightUp=values["up"],
             weightDown=values["down"],
         )
+
+
+# ------------------------------
+# OBJECT-WISE CORRECTIONS
+# ------------------------------
 
 
 # ------------------------------
