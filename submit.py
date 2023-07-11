@@ -68,8 +68,15 @@ if __name__ == "__main__":
         "--channel",
         dest="channel",
         type=str,
+        default="2b1l",
+        help="channel to be processed {'2b1l', '1b1e1mu'}",
+    )
+    parser.add_argument(
+        "--lepton_flavor",
+        dest="lepton_flavor",
+        type=str,
         default="mu",
-        help="lepton channel to be processed {'mu', 'ele'} (default mu)",
+        help="lepton flavor to be processed {'mu', 'ele'}",
     )
     parser.add_argument(
         "--fileset",
@@ -119,5 +126,12 @@ if __name__ == "__main__":
         type=list,
         default=[],
         help="nsample",
+    )
+    parser.add_argument(
+        "--chunksize",
+        dest="chunksize",
+        type=int,
+        default=50000,
+        help="number of chunks to process",
     )
     main(parser.parse_args())

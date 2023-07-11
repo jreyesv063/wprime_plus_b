@@ -13,7 +13,9 @@ def run_coffea_casa(args):
         executor:
             executor to be used {iterative, futures, dask}
         channel:
-            channel to be processed {'mu', 'ele'}
+            channel to be processed {'2b1l', '1b1e1mu'}
+        lepton flavor:
+            lepton flavor to be processed {'mu', 'ele'}
         fileset:
             fileset to be processed (use 'UL' to select all UL samples)
         sample:
@@ -34,7 +36,7 @@ def run_coffea_casa(args):
             redirector to find CMS datasets. 'xcache' at coffea-casa. 'cmsxrootd.fnal.gov', 'xrootd-cms.infn.it' or 'cms-xrd-global.cern.ch' at lxplus.
     """
     # dask client at coffea-casa
-    client = "tls://daniel-2eocampo-2ehenao-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
+    client = "tls://tomas-2eatehortua-2egarces-40cern-2ech.dask.cmsaf-prod.flatiron.hollandhpc.org:8786"
 
     # divide filesets in args.nsplit json files
     filesets = get_filesets(args.fileset, args.sample, args.year, args.nsplit)
@@ -44,14 +46,15 @@ def run_coffea_casa(args):
         for sample, fileset in filesets.items():
             print(f"Processing {sample}")
             os.system(
-                f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
+                f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --lepton_flavor {args.lepton_flavor} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
             )
     else:
         for sample, fileset in filesets.items():
             for n in args.nsample:
+                #if sample.split("_")[-1] == "1": continue
                 if f"_{n}" in sample:
                     print(f"Processing {sample}")
                     os.system(
-                        f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
+                        f"python3 run.py --processor {args.processor} --executor {args.executor} --channel {args.channel} --lepton_flavor {args.lepton_flavor} --fileset {fileset} --year {args.year} --nfiles {args.nfiles} --tag {args.tag} --redirector {args.redirector} --client {client}"
                     )
                     

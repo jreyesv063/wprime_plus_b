@@ -1,7 +1,9 @@
 import json
+import time
 import dask     
 import pickle
 import argparse
+import numpy as np
 from pathlib import Path
 from coffea import processor
 from datetime import datetime
@@ -11,13 +13,14 @@ from distributed.diagnostics.plugin import UploadDirectory
 #from wprime_plus_b.processors.ttbar_cr1_processor import TTbarCR1Processor
 #from wprime_plus_b.processors.ttbar_cr2_processor import TTbarCR2Processor
 #from wprime_plus_b.processors.trigger_efficiency_processor import TriggerEfficiencyProcessor
-from wprime_plus_b.processors.ztoll_processor import ZToLLProcessor
-from wprime_plus_b.processors.cr1_processor import TTbarCR1Processor
-from wprime_plus_b.processors.cr2_processor import TTbarCR2Processor
-from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
-from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
+#from wprime_plus_b.processors.ztoll_processor import ZToLLProcessor
+from wprime_plus_b.processors.ttbar_processor_v2 import TtbarAnalysis
+#from wprime_plus_b.processors.cr2_processor import TTbarCR2Processor
+#from wprime_plus_b.processors.signal_processor import SignalRegionProcessor
+#from wprime_plus_b.processors.btag_efficiency_processor import BTagEfficiencyProcessor
 
 def main(args):
+    np.seterr(divide="ignore", invalid="ignore")
     # load and process filesets
     fileset = {}
     with open(args.fileset, "r") as handle:
@@ -28,11 +31,11 @@ def main(args):
         fileset[sample] = [f"root://{args.redirector}/" + file for file in val]
     # define processors
     processors = {
-        "signal": SignalRegionProcessor,
-        "ttbar_cr1": TTbarCR1Processor,
-        "ttbar_cr2": TTbarCR2Processor,
-        "ztoll": ZToLLProcessor,
-        "btag_eff": BTagEfficiencyProcessor,
+        #"signal": SignalRegionProcessor,
+        "ttbar": TtbarAnalysis,
+        #"ttbar_cr2": TTbarCR2Processor,
+        #"ztoll": ZToLLProcessor,
+        #"btag_eff": BTagEfficiencyProcessor,
         #"ttbar_cr1": TTbarCR1Processor,
         #"ttbar_cr2": TTbarCR2Processor,
         #"candle": CandleProcessor,
@@ -43,14 +46,16 @@ def main(args):
         "year": args.year,
         "yearmod": args.yearmod,
         "channel": args.channel,
+        "lepton_flavor": args.lepton_flavor,
     }
     if args.processor == "btag_eff":
+        del processor_kwargs["lepton_flavor"]
         del processor_kwargs["channel"]
     # define executors
     executors = {
-        "iterative": processor.iterative_executor,
-        "futures": processor.futures_executor,
-        "dask": processor.dask_executor,
+        "iterative": processor.IterativeExecutor,#iterative_executor,
+        "futures": processor.FuturesExecutor,#futures_executor,
+        "dask": processor.DaskExecutor#dask_executor,
     }
     executor_args = {
         "schema": processor.NanoAODSchema,
@@ -70,13 +75,22 @@ def main(args):
         except OSError:
             print("Failed to upload the directory")
     # run processor
-    out = processor.run_uproot_job(
-        fileset,
+    run = processor.Runner(
+        executor=executors[args.executor](executor_args), 
+        schema=processor.NanoAODSchema, 
+        savemetrics=True, 
+        metadata_cache={},
+        #chunksize=args.chunksize
+    )
+    filemeta = run.preprocess(fileset, treename="Events")
+    t0 = time.monotonic()
+    out, metrics = run(
+        fileset, 
         treename="Events",
         processor_instance=processors[args.processor](**processor_kwargs),
-        executor=executors[args.executor],
-        executor_args=executor_args,
     )
+    exec_time = time.monotonic() - t0
+    print(f"\nexecution took {exec_time:.2f} seconds")
     # save output
     date = datetime.today().strftime("%Y-%m-%d")
     output_path = Path(
@@ -86,17 +100,28 @@ def main(args):
         + "/"
         + date
         + "/"
-        + args.processor
+        + args.channel
         + "/"
         + args.year
         + "/"
-        + args.channel
+        + args.lepton_flavor
     )
     if not output_path.exists():
         output_path.mkdir(parents=True)
     with open(f"{str(output_path)}/{sample}.pkl", "wb") as handle:
         pickle.dump(out, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
+        
+    # save metrics
+    metrics.update({
+        "walltime": exec_time,
+        "executor": args.executor,
+        "chunksize": None,#args.chunksize,
+    })
+    metrics_path = Path(f"{str(output_path)}/metrics")
+    if not metrics_path.exists():
+        metrics_path.mkdir(parents=True)
+    with open(f"{str(output_path)}/metrics/{sample}_metrics.json", "w") as f:
+        f.write(json.dumps(metrics))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -118,8 +143,15 @@ if __name__ == "__main__":
         "--channel",
         dest="channel",
         type=str,
-        default="ele",
-        help="lepton channel to be processed {'mu', 'ele'}",
+        default="2b1l",
+        help="channel to be processed {'2b1l', '1b1e1mu'}",
+    )
+    parser.add_argument(
+        "--lepton_flavor",
+        dest="lepton_flavor",
+        type=str,
+        default="mu",
+        help="lepton flavor to be processed {'mu', 'ele'}",
     )
     parser.add_argument("--year", dest="year", type=str, default="2017", help="year")
     parser.add_argument(
@@ -175,6 +207,13 @@ if __name__ == "__main__":
         dest="client",
         type=str,
         help="dask client to use with dask executor on coffea-casa",
+    )
+    parser.add_argument(
+        "--chunksize",
+        dest="chunksize",
+        type=int,
+        default=50000,
+        help="number of chunks to process",
     )
     args = parser.parse_args()
     main(args)
