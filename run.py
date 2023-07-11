@@ -4,10 +4,11 @@ import dask
 import pickle
 import argparse
 import numpy as np
+import datetime
 from pathlib import Path
 from coffea import processor
-from datetime import datetime
 from dask.distributed import Client
+from humanfriendly import format_timespan
 from distributed.diagnostics.plugin import UploadDirectory
 #from wprime_plus_b.processors.candle_processor import CandleProcessor
 #from wprime_plus_b.processors.ttbar_cr1_processor import TTbarCR1Processor
@@ -53,9 +54,9 @@ def main(args):
         del processor_kwargs["channel"]
     # define executors
     executors = {
-        "iterative": processor.IterativeExecutor,#iterative_executor,
-        "futures": processor.FuturesExecutor,#futures_executor,
-        "dask": processor.DaskExecutor#dask_executor,
+        "iterative": processor.iterative_executor,
+        "futures": processor.futures_executor,
+        "dask": processor.dask_executor,
     }
     executor_args = {
         "schema": processor.NanoAODSchema,
@@ -75,24 +76,18 @@ def main(args):
         except OSError:
             print("Failed to upload the directory")
     # run processor
-    run = processor.Runner(
-        executor=executors[args.executor](executor_args), 
-        schema=processor.NanoAODSchema, 
-        savemetrics=True, 
-        metadata_cache={},
-        #chunksize=args.chunksize
-    )
-    filemeta = run.preprocess(fileset, treename="Events")
     t0 = time.monotonic()
-    out, metrics = run(
-        fileset, 
+    out = processor.run_uproot_job(
+        fileset,
         treename="Events",
         processor_instance=processors[args.processor](**processor_kwargs),
+        executor=executors[args.executor],
+        executor_args=executor_args,
     )
-    exec_time = time.monotonic() - t0
-    print(f"\nexecution took {exec_time:.2f} seconds")
+    exec_time = format_timespan(time.monotonic() - t0)
+    print(f"\nexecution took {exec_time}")
     # save output
-    date = datetime.today().strftime("%Y-%m-%d")
+    date = datetime.datetime.today().strftime("%Y-%m-%d")
     output_path = Path(
         args.output_location
         + "/"
@@ -112,11 +107,8 @@ def main(args):
         pickle.dump(out, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
     # save metrics
-    metrics.update({
-        "walltime": exec_time,
-        "executor": args.executor,
-        "chunksize": None,#args.chunksize,
-    })
+    metrics = {"walltime": exec_time}
+    metrics.update(vars(args))
     metrics_path = Path(f"{str(output_path)}/metrics")
     if not metrics_path.exists():
         metrics_path.mkdir(parents=True)
