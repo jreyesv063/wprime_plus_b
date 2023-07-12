@@ -1,0 +1,77 @@
+Keywords to search for in DAS: https://cmsweb.cern.ch/das/
+
+2016:
+
+  Pre:
+        dataset=/Tau/Run2016*UL2016*NanoAODv2*/NANOAOD  (B-F)
+        dataset=/SingleMuon/Run2016*UL2016*NanoAODv2*/NANOAOD (B-F)
+
+          
+        dataset=/TT_*13TeV*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+
+        dataset=/ST_t*TuneCP5_13TeV*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+        dataset=/ST_s*TuneCP5_13TeV*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+
+        dataset=/ZZ*13TeV*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+        dataset=/WZ*13TeV*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+        dataset=/WW*13TeV*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+        
+        dataset=/WJetsToLNu_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM
+          
+        dataset=/DYJetsToLL_M-50_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL16NanoAODAPVv2-*/NANOAODSIM 
+        
+  Post:
+
+        dataset=/Tau/Run2016*UL2016*NanoAODv2*/NANOAOD  (F-H)
+        dataset=/SingleMuon/Run2016*UL2016*NanoAODv2*/NANOAOD (F-H)
+
+        dataset=/TT_*13TeV*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM 
+
+        dataset=/ST_t*TuneCP5_13TeV*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM 
+        dataset=/ST_s*TuneCP5_13TeV*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM
+
+        dataset=/ZZ*13TeV*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM 
+        dataset=/WZ*13TeV*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM
+        dataset=/WW*13TeV*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM
+
+
+        dataset=/WJetsToLNu_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM
+
+        dataset=/DYJetsToLL_M-50_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL16NanoAODv2-*/NANOAODSIM
+
+
+2017:
+
+        dataset=/Tau/Run2017*UL2017*NanoAODv2*/NANOAOD (B-F)
+        dataset=/SingleMuon/Run2017*UL2017*NanoAODv2*/NANOAOD (B-F)
+
+        dataset=/TT_*13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+
+        dataset=/ST_t*TuneCP5_13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+        dataset=/ST_s*TuneCP5_13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+          
+
+        dataset=/ZZ*13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+        dataset=/WZ*13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+        dataset=/WW*13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+
+        dataset=/WJetsToLNu_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+        dataset=/DYJetsToLL_M-50_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+
+2018:
+
+        dataset=/Tau/Run2018*UL2018*NanoAODv2*/NANOAOD (A-D)
+        dataset=/SingleMuon/Run2018*UL2018*NanoAODv2*/NANOAOD (A-D)
+
+        dataset=/TT_*13TeV*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
+          
+        dataset=/ST_t*TuneCP5_13TeV*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
+        dataset=/ST_s*TuneCP5_13TeV*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
+          
+        dataset=/ZZ*13TeV*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
+        dataset=/WZ*13TeV*/RunIISummer20UL17NanoAODv2-*/NANOAODSIM
+        dataset=/WW*13TeV*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
+
+        dataset=/WJetsToLNu_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
+
+         dataset=/DYJetsToLL_M-50_HT*13TeV-madgraphMLM-pythia8*/RunIISummer20UL18NanoAODv2-*/NANOAODSIM
